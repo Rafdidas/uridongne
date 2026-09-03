@@ -1,0 +1,19 @@
+@import "tailwindcss";
+@import "../styles/theme.css";
+@import "../styles/surfaces.css";
+@config "../../tailwind.config.ts";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--canvas);
+  background-image: radial-gradient(circle at 15% 10%, rgb(131 162 219 / 42%), transparent 32%), radial-gradient(circle at 85% 20%, rgb(253 142 140 / 25%), transparent 28%);
+  color: var(--on-surface);
+  font-family: var(--font-app);
+}
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
