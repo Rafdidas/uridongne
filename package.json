@@ -23,13 +23,18 @@
   "devDependencies": {
     "@opennextjs/cloudflare": "1.20.6",
     "@tailwindcss/postcss": "4.3.3",
+    "@types/adm-zip": "0.5.8",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
+    "adm-zip": "0.6.0",
+    "csv-parse": "7.0.2",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.4",
+    "iconv-lite": "0.7.3",
     "postcss": "8.5.6",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.13",
     "typescript": "6.0.2",
     "vitest": "4.1.11",
     "wrangler": "4.128.0"
