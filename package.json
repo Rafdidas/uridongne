@@ -13,7 +13,8 @@
     "test": "vitest run",
     "build:cf": "opennextjs-cloudflare build",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
-    "data:inspect": "tsx scripts/data/inspect-artifact.ts"
+    "data:inspect": "tsx scripts/data/inspect-artifact.ts",
+    "data:compare": "tsx scripts/data/compare-profiles.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.8",
