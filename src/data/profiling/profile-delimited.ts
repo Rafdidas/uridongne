@@ -18,7 +18,11 @@ function normalizeHeaderDelimiter(text: string, delimiter: string): string {
   return `${header.replaceAll(headerDelimiter, delimiter)}${text.slice(lineBreakIndex)}`;
 }
 
-export function profileDelimited(entry: ArtifactEntry): EntryProfile {
+export function parseDelimitedRecords(entry: ArtifactEntry): {
+  decoded: ReturnType<typeof decodeText>;
+  delimiter: EntryProfile["delimiter"];
+  records: Record<string, string>[];
+} {
   const decoded = decodeText(entry.bytes);
   const delimiter = detectDelimiter(decoded.text);
   const records = parse(normalizeHeaderDelimiter(decoded.text, delimiter), {
@@ -29,6 +33,12 @@ export function profileDelimited(entry: ArtifactEntry): EntryProfile {
     relax_column_count: false,
     bom: true,
   }) as Record<string, string>[];
+
+  return { decoded, delimiter, records };
+}
+
+export function profileDelimited(entry: ArtifactEntry): EntryProfile {
+  const { decoded, delimiter, records } = parseDelimitedRecords(entry);
   const headers = records.length > 0 ? Object.keys(records[0]) : [];
   const nullTokens: Record<string, number> = {};
   const numeric: EntryProfile["numeric"] = {};

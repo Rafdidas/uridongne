@@ -33,6 +33,45 @@ export interface ArtifactProfile {
   byteLength: number;
   sha256: string;
   entries: EntryProfile[];
+  invariants?: StoreInvariantProfile | PopulationInvariantProfile;
+}
+
+export interface StoreSchema {
+  quarter: string;
+  dongCode: string;
+  industryCode: string;
+  totalStoreCount: string;
+  nonFranchiseStoreCount: string;
+  franchiseStoreCount: string;
+  openingCount: string;
+  closingCount: string;
+}
+
+export interface PopulationSchema {
+  date: string;
+  hour: string;
+  dongCode: string;
+  totalPopulation: string;
+}
+
+export interface StoreInvariantProfile {
+  duplicateKeyCount: number;
+  totalMismatchCount: number;
+  negativeCount: number;
+  nonIntegerCount: number;
+  quarterValues: string[];
+  dongCodeLengths: Record<string, number>;
+  dongCodeValues: string[];
+}
+
+export interface PopulationInvariantProfile {
+  duplicateKeyCount: number;
+  negativeCount: number;
+  nonFiniteCount: number;
+  dateRange: { min: string; max: string };
+  hourValues: number[];
+  dongCodeLengths: Record<string, number>;
+  dongCodeValues: string[];
 }
 
 export type ComparisonMode = "same_month_previous_year" | "previous_month" | "unavailable";

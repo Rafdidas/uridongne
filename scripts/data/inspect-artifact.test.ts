@@ -18,15 +18,47 @@ describe("inspect-artifact CLI", () => {
     const fixturePath = path.join(projectRoot, "src", "data", "profiling", "__fixtures__", "store-sample.csv");
     const tsxCli = path.join(projectRoot, "node_modules", "tsx", "dist", "cli.mjs");
     const scriptPath = path.join(scriptsDirectory, "inspect-artifact.ts");
+    const schema = JSON.stringify({
+      quarter: "STDR_YYQU_CD",
+      dongCode: "ADSTRD_CD",
+      industryCode: "SVC_INDUTY_CD",
+      totalStoreCount: "SIMILR_INDUTY_STOR_CO",
+      nonFranchiseStoreCount: "STOR_CO",
+      franchiseStoreCount: "FRC_STOR_CO",
+      openingCount: "STOR_CO",
+      closingCount: "FRC_STOR_CO",
+    });
 
     try {
-      await execFileAsync(process.execPath, [tsxCli, scriptPath, "--kind", "store", "--period", "2025", "--input", fixturePath, "--output", outputPath]);
+      await execFileAsync(process.execPath, [
+        tsxCli,
+        scriptPath,
+        "--kind",
+        "store",
+        "--period",
+        "2025",
+        "--input",
+        fixturePath,
+        "--output",
+        outputPath,
+        "--schema",
+        schema,
+      ]);
       const profile = JSON.parse(await readFile(outputPath, "utf8"));
 
       expect(profile).toMatchObject({
         sourceKind: "store",
         period: "2025",
         inputName: "store-sample.csv",
+        invariants: {
+          duplicateKeyCount: 0,
+          totalMismatchCount: 0,
+          negativeCount: 0,
+          nonIntegerCount: 0,
+          quarterValues: ["20251"],
+          dongCodeLengths: { "8": 1 },
+          dongCodeValues: ["11440660"],
+        },
       });
       expect(profile.entries).toHaveLength(1);
       expect(profile.entries[0].firstRows).toHaveLength(1);
