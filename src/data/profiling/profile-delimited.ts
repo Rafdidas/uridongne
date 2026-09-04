@@ -39,8 +39,8 @@ export function profileDelimited(entry: ArtifactEntry): EntryProfile {
 
     if (numericValues.length > 0) {
       numeric[header] = {
-        min: Math.min(...numericValues),
-        max: Math.max(...numericValues),
+        min: numericValues.reduce((minimum, value) => Math.min(minimum, value)),
+        max: numericValues.reduce((maximum, value) => Math.max(maximum, value)),
         invalidCount,
       };
     }

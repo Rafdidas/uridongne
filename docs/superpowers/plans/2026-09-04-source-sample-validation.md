@@ -68,7 +68,7 @@
 - Produces: `ArtifactEntry = { name: string; byteLength: number; bytes: Uint8Array }`
 - Consumes: Node `crypto`, `fs/promises`, `path`; `adm-zip`; `iconv-lite`
 
-- [ ] **Step 1: Add synthetic fixtures with known encodings and delimiters**
+- [x] **Step 1: Add synthetic fixtures with known encodings and delimiters**
 
 Create UTF-8 fixture content:
 
@@ -85,7 +85,7 @@ Create the population fixture as UTF-8 first; the test will convert it to EUC-KR
 20260701,1,11440660,12401.0
 ```
 
-- [ ] **Step 2: Write failing primitive tests**
+- [x] **Step 2: Write failing primitive tests**
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -119,13 +119,13 @@ describe("artifact inspection primitives", () => {
 });
 ```
 
-- [ ] **Step 3: Run the test and verify RED**
+- [x] **Step 3: Run the test and verify RED**
 
 Run: `pnpm test -- src/data/profiling/archive.test.ts`
 
 Expected: FAIL because `./archive` does not exist.
 
-- [ ] **Step 4: Install exact development dependencies**
+- [x] **Step 4: Install exact development dependencies**
 
 Run:
 
@@ -135,7 +135,7 @@ pnpm add -D --save-exact tsx@4.23.13 adm-zip@0.6.0 @types/adm-zip@0.5.8 csv-pars
 
 Expected: `package.json` and `pnpm-lock.yaml` contain the exact versions above.
 
-- [ ] **Step 5: Implement types and primitives**
+- [x] **Step 5: Implement types and primitives**
 
 ```ts
 // src/data/profiling/types.ts
@@ -193,7 +193,7 @@ export async function readArtifact(inputPath: string): Promise<ArtifactEntry[]> 
 }
 ```
 
-- [ ] **Step 6: Run focused and full tests**
+- [x] **Step 6: Run focused and full tests**
 
 Run: `pnpm test -- src/data/profiling/archive.test.ts`
 
@@ -203,7 +203,7 @@ Run: `pnpm test`
 
 Expected: all existing and new tests pass.
 
-- [ ] **Step 7: Commit Task 1 files only**
+- [x] **Step 7: Commit Task 1 files only**
 
 ```powershell
 git add package.json pnpm-lock.yaml src/data/profiling/types.ts src/data/profiling/archive.ts src/data/profiling/archive.test.ts src/data/profiling/__fixtures__/store-sample.csv src/data/profiling/__fixtures__/population-sample.csv
@@ -229,7 +229,7 @@ git commit -m "feat: add Seoul artifact inspection primitives"
 - Produces: `parseNamedArgs(argv: string[], required: readonly string[]): Record<string, string>`
 - CLI: `pnpm data:inspect -- --kind <store|population> --period <YYYY|YYYYMM> --input <path> --output <path>`
 
-- [ ] **Step 1: Write the failing profile test**
+- [x] **Step 1: Write the failing profile test**
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -249,13 +249,13 @@ it("profiles headers, row counts, null tokens, and numeric ranges", async () => 
 });
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run: `pnpm test -- src/data/profiling/profile-delimited.test.ts`
 
 Expected: FAIL because `profile-delimited.ts` does not exist.
 
-- [ ] **Step 3: Add profile types**
+- [x] **Step 3: Add profile types**
 
 ```ts
 export interface NumericProfile {
@@ -286,7 +286,7 @@ export interface ArtifactProfile {
 }
 ```
 
-- [ ] **Step 4: Implement `profileDelimited`**
+- [x] **Step 4: Implement `profileDelimited`**
 
 Use `csv-parse/sync` with `columns: true`, `skip_empty_lines: true`, `relax_column_count: false`, and the detected delimiter. Count exact null markers `""`, `"*"`, `"\\N"`, `"null"`, and `"NULL"` under keys formatted as `header=token`. Record numeric ranges for columns containing at least one numeric value and count non-null, non-numeric values in `invalidCount`. Keep at most the first five rows in `firstRows`; do not copy all raw rows into profiles.
 
@@ -348,7 +348,7 @@ export function profileDelimited(entry: ArtifactEntry): EntryProfile {
 }
 ```
 
-- [ ] **Step 5: Implement the inspection CLI**
+- [x] **Step 5: Implement the inspection CLI**
 
 The CLI must reject missing or repeated arguments, reject `kind` values other than `store` and `population`, create only the parent directory of `--output`, and write JSON with two-space indentation plus a final newline. It must never print `process.env`.
 
@@ -400,7 +400,7 @@ Add to `package.json`:
 "data:inspect": "tsx scripts/data/inspect-artifact.ts"
 ```
 
-- [ ] **Step 6: Verify GREEN and CLI determinism**
+- [x] **Step 6: Verify GREEN and CLI determinism**
 
 Run: `pnpm test -- src/data/profiling/profile-delimited.test.ts`
 
@@ -417,7 +417,7 @@ Get-FileHash -Algorithm SHA256 data/work/profile-b.json
 
 Expected: both hashes are identical.
 
-- [ ] **Step 7: Commit Task 2 files only**
+- [x] **Step 7: Commit Task 2 files only**
 
 ```powershell
 git add package.json src/data/profiling/types.ts src/data/profiling/profile-delimited.ts src/data/profiling/profile-delimited.test.ts scripts/data/cli-args.ts scripts/data/inspect-artifact.ts
@@ -440,7 +440,7 @@ git commit -m "feat: add deterministic Seoul source profiler"
 - Produces: `PopulationCompatibility = { comparisonMode, comparisonPeriod, compatible, fallbackReason, differences }`
 - CLI: `pnpm data:compare -- --current <profile> --previous-year <profile> --previous-month <profile> --output <path>`
 
-- [ ] **Step 1: Write failing comparison tests**
+- [x] **Step 1: Write failing comparison tests**
 
 ```ts
 import type { ArtifactProfile } from "./types";
@@ -502,13 +502,13 @@ it("returns unavailable when neither comparison profile matches", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify RED**
+- [x] **Step 2: Run the test and verify RED**
 
 Run: `pnpm test -- src/data/profiling/compatibility.test.ts`
 
 Expected: FAIL because `compatibility.ts` does not exist.
 
-- [ ] **Step 3: Implement compatibility rules**
+- [x] **Step 3: Implement compatibility rules**
 
 Compare the sorted list of archive entry basenames, each entry's source-order headers, detected encoding, and delimiter. Do not compare hashes or row counts for schema compatibility. Return every difference as `{ path, current, candidate }`; use the previous-year profile only when no differences exist, otherwise test the previous-month profile.
 
@@ -606,7 +606,7 @@ export function compareProfiles(
 }
 ```
 
-- [ ] **Step 4: Implement comparison CLI and script**
+- [x] **Step 4: Implement comparison CLI and script**
 
 Add to `package.json`:
 
@@ -616,7 +616,7 @@ Add to `package.json`:
 
 The CLI uses `parseNamedArgs(argv, ["current", "previous-year", "previous-month", "output"])`, reads three JSON profiles, calls `compareProfiles`, and writes deterministic JSON. It exits with code 2 only when `comparisonMode` is `unavailable`; a valid previous-month fallback exits 0 while preserving `fallbackReason`.
 
-- [ ] **Step 5: Verify focused and full tests**
+- [x] **Step 5: Verify focused and full tests**
 
 Run: `pnpm test -- src/data/profiling/compatibility.test.ts`
 
@@ -626,7 +626,7 @@ Run: `pnpm test`
 
 Expected: all tests pass.
 
-- [ ] **Step 6: Commit Task 3 files only**
+- [x] **Step 6: Commit Task 3 files only**
 
 ```powershell
 git add package.json src/data/profiling/types.ts src/data/profiling/compatibility.ts src/data/profiling/compatibility.test.ts scripts/data/compare-profiles.ts
@@ -656,7 +656,7 @@ git commit -m "feat: compare Seoul population source profiles"
 - Consumes official population files from `https://data.seoul.go.kr/dataList/OA-23016/S/1/datasetView.do`
 - Produces committed profiles containing metadata and at most five source rows per archive entry
 
-- [ ] **Step 1: Ignore raw and temporary data**
+- [x] **Step 1: Ignore raw and temporary data**
 
 Append exactly:
 
@@ -681,7 +681,7 @@ Get-ChildItem -LiteralPath data/raw/store,data/raw/population | Select-Object Na
 
 Expected: all five filenames exist with non-zero lengths. Compare displayed sizes with the official pages and record any mismatch before profiling.
 
-- [ ] **Step 3: Generate store profiles**
+- [x] **Step 3: Generate store profiles**
 
 ```powershell
 pnpm data:inspect -- --kind store --period 2025 --input "data/raw/store/서울시 상권분석서비스(점포-행정동)_2025년.zip" --output data/profiles/store-2025.json

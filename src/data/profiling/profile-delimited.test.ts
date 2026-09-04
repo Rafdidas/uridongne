@@ -31,4 +31,19 @@ describe("profileDelimited", () => {
       invalidCount: 0,
     });
   });
+
+  it("profiles numeric ranges beyond the JavaScript argument limit", () => {
+    const rows = Array.from({ length: 150_000 }, (_, index) => `${index}`);
+    const profile = profileDelimited({
+      name: "large.csv",
+      byteLength: 0,
+      bytes: Buffer.from(`value\n${rows.join("\n")}\n`),
+    });
+
+    expect(profile.numeric.value).toEqual({
+      min: 0,
+      max: 149_999,
+      invalidCount: 0,
+    });
+  });
 });
