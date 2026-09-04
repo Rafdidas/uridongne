@@ -12,7 +12,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "build:cf": "opennextjs-cloudflare build",
-    "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview"
+    "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
+    "data:inspect": "tsx scripts/data/inspect-artifact.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.8",
