@@ -36,6 +36,12 @@ describe("artifact inspection primitives", () => {
     expect(detectDelimiter(decoded.text)).toBe("|");
   });
 
+  it("detects semicolon-delimited official population entries", () => {
+    const text = '"일자","시간","행정동코드"\n"20260726";"00";"11110515     "';
+
+    expect(detectDelimiter(text)).toBe(";");
+  });
+
   it("reads each non-directory entry from a ZIP artifact", async () => {
     const directory = await mkdtemp(path.join(tmpdir(), "uridongne-profile-"));
     const archivePath = path.join(directory, "sample.zip");

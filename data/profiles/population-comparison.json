@@ -1,0 +1,18 @@
+{
+  "comparisonMode": "unavailable",
+  "comparisonPeriod": null,
+  "compatible": false,
+  "fallbackReason": "previous_month_schema_mismatch",
+  "differences": [
+    {
+      "path": "entries.length",
+      "current": "31",
+      "candidate": "1"
+    },
+    {
+      "path": "entries.length",
+      "current": "31",
+      "candidate": "1"
+    }
+  ]
+}

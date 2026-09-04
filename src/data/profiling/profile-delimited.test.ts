@@ -46,4 +46,24 @@ describe("profileDelimited", () => {
       invalidCount: 0,
     });
   });
+
+  it("profiles semicolon-delimited official population rows", () => {
+    const profile = profileDelimited({
+      name: "population.csv",
+      byteLength: 0,
+      bytes: Buffer.from(
+        '"일자","시간","행정동코드","생활인구합계"\r\n"20260726";"00";"11110515     ";"13912.53"\n',
+        "utf8",
+      ),
+    });
+
+    expect(profile).toMatchObject({
+      delimiter: ";",
+      headers: ["일자", "시간", "행정동코드", "생활인구합계"],
+      rowCount: 1,
+      numeric: {
+        생활인구합계: { min: 13912.53, max: 13912.53, invalidCount: 0 },
+      },
+    });
+  });
 });

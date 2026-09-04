@@ -21,11 +21,12 @@ export function decodeText(bytes: Uint8Array): { encoding: TextEncoding; text: s
 }
 
 export function detectDelimiter(text: string): Delimiter {
-  const firstLine = text.split(/\r?\n/, 1)[0] ?? "";
-  const candidates: Delimiter[] = [",", "\t", "|"];
+  const candidates: Delimiter[] = [",", ";", "\t", "|"];
+  const lines = text.split(/\r?\n/).filter((line) => line.length > 0);
+  const sampleLine = lines[1] ?? lines[0] ?? "";
 
   return candidates
-    .map((delimiter) => ({ delimiter, count: firstLine.split(delimiter).length - 1 }))
+    .map((delimiter) => ({ delimiter, count: sampleLine.split(delimiter).length - 1 }))
     .sort((left, right) => right.count - left.count)[0]?.delimiter ?? ",";
 }
 
