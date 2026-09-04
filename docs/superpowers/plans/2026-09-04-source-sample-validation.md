@@ -669,7 +669,7 @@ Run: `git check-ignore data/raw/store/example.zip data/work/example.json`
 
 Expected: both paths are printed.
 
-- [ ] **Step 2: Download the five named official archives**
+- [x] **Step 2: Download the five named official archives**
 
 Use the official dataset download controls and save each file under the exact local paths above. If the site requires login or an API key, pause for the user to complete authentication; never automate credential entry or copy a key into the repository.
 
@@ -690,7 +690,7 @@ pnpm data:inspect -- --kind store --period 2024 --input "data/raw/store/서울�
 
 Expected: both profiles contain the official fields `STDR_YYQU_CD`, `ADSTRD_CD`, `ADSTRD_CD_NM`, `SVC_INDUTY_CD`, `SVC_INDUTY_CD_NM`, `SIMILR_INDUTY_STOR_CO`, `STOR_CO`, `FRC_STOR_CO`, `OPBIZ_RT`, `OPBIZ_STOR_CO`, `CLSBIZ_RT`, and `CLSBIZ_STOR_CO`. If an official header differs, record the exact header and stop before designing the production parser.
 
-- [ ] **Step 4: Generate population profiles and compatibility result**
+- [x] **Step 4: Generate population profiles and compatibility result**
 
 ```powershell
 pnpm data:inspect -- --kind population --period 202607 --input data/raw/population/250_LOCAL_RESD_ADMDONG_202607.zip --output data/profiles/population-202607.json
@@ -701,7 +701,7 @@ pnpm data:compare -- --current data/profiles/population-202607.json --previous-y
 
 Expected: comparison selects `same_month_previous_year` when the profiles match. If it selects `previous_month` or `unavailable`, preserve the generated reason and do not alter the output manually.
 
-- [ ] **Step 5: Check profiles for accidental secrets and raw-data excess**
+- [x] **Step 5: Check profiles for accidental secrets and raw-data excess**
 
 Run:
 
@@ -712,7 +712,7 @@ Get-ChildItem -LiteralPath data/profiles | Select-Object Name,Length
 
 Expected: the search returns no matches. Each profile contains at most five raw rows per entry and remains small enough for code review; if any profile exceeds 2 MB, remove high-cardinality samples from the profiler implementation, regenerate, and rerun tests.
 
-- [ ] **Step 6: Commit ignored-path rule and deterministic profiles**
+- [x] **Step 6: Commit ignored-path rule and deterministic profiles**
 
 ```powershell
 git add .gitignore data/profiles
@@ -735,7 +735,7 @@ Before committing, run `git status --short` and confirm no file under `data/raw/
 - Consumes: the six committed JSON profiles from Task 4
 - Produces: explicit production-parser requirements and a go/no-go decision for the D1 pipeline plan
 
-- [ ] **Step 1: Write the report from measured profile values**
+- [x] **Step 1: Write the report from measured profile values**
 
 The report must contain these sections and fill them only from generated profiles:
 
@@ -772,7 +772,7 @@ The report must contain these sections and fill them only from generated profile
 - D1 스키마 계획 진행 가능 여부
 ```
 
-- [ ] **Step 2: Add measured invariant checks before the report is accepted**
+- [x] **Step 2: Add measured invariant checks before the report is accepted**
 
 Use a one-off script under `scripts/data/validate-profile-findings.ts` only if the JSON profiles contain enough first-row information for the check. If full-row checks require raw records, extend `profileDelimited` with aggregate counters rather than committing raw rows. The committed profile must include these counters:
 
@@ -798,7 +798,7 @@ interface PopulationInvariantProfile {
 
 Add failing tests for each aggregate counter before extending the profiler, verify RED, implement the smallest source-kind-specific aggregation, then verify GREEN. Do not infer column names: take the exact names recorded in the Task 4 report and pass them as a checked `--schema` JSON argument to the CLI.
 
-- [ ] **Step 3: Reconcile the design spec with evidence**
+- [x] **Step 3: Reconcile the design spec with evidence**
 
 Update only statements disproved or made precise by the report. Preserve the approved behavior:
 
@@ -810,7 +810,7 @@ Update only statements disproved or made precise by the report. Preserve the app
 
 If the evidence cannot prove year-over-year compatibility, mark the D1 pipeline plan blocked and do not silently change the product behavior.
 
-- [ ] **Step 4: Update README and handoff**
+- [x] **Step 4: Update README and handoff**
 
 Add these commands to README:
 
@@ -821,7 +821,7 @@ pnpm data:compare -- --current <profile> --previous-year <profile> --previous-mo
 
 State that raw files are local/ignored and that profiles contain public sample metadata only. In `handoff.md`, record exact source periods, measured hashes, commands, results, unresolved anomalies, and the next plan boundary. Never paste raw records or keys into either document.
 
-- [ ] **Step 5: Run final verification**
+- [x] **Step 5: Run final verification**
 
 ```powershell
 pnpm test
@@ -834,7 +834,7 @@ git status --short
 
 Expected: all commands exit 0; status contains only the intended report/spec/README/handoff changes plus the pre-existing pastel-theme changes.
 
-- [ ] **Step 6: Commit the evidence and documentation**
+- [x] **Step 6: Commit the evidence and documentation**
 
 ```powershell
 git add docs/data/2026-09-04-source-sample-validation.md docs/superpowers/specs/2026-09-04-data-pipeline-and-map-design.md README.md handoff.md
