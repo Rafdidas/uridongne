@@ -19,6 +19,8 @@ export interface MonthAggregation {
   observedSlots: number;
   dongs: Record<string, DongAggregation>;
   errors: string[];
+  methodId?: string;
+  methodStatus?: "verified" | "unverified";
 }
 
 export interface AggregateOptions {
@@ -77,7 +79,7 @@ export async function aggregatePopulation(
     status: errors.length > 0 ? "invalid" : hasIncomplete ? "incomplete" : "complete",
     expectedSlotsPerDong,
     observedSlots: slots.size,
-    dongs,
+    dongs: errors.length > 0 ? {} : dongs,
     errors,
   };
 }
