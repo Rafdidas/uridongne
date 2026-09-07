@@ -75,31 +75,31 @@ Tailwind 4에서는 JS 설정을 자동 탐지한다고 가정하지 않고 glob
 
 이 절의 값은 최종 브랜드 결정이 아닌 교체 가능한 초기 기본값이다.
 
-- 밝은 테마부터 시작한다. 기본 surface는 #ffffff, on-surface는 #0f172a, outline은 #cbd5e1, primary는 #0f766e, on-primary는 #ffffff.
+- 밝은 테마부터 시작한다. 기본 surface는 #ffffff, on-surface는 #1c1720, outline은 #d9c9d8, primary는 #a46f90, on-primary는 #1c1720이다. 흰색·검정 계열은 읽기와 대비를 위한 역할에 유지하고, 그 밖의 임시 색상은 저채도 파스텔로 둔다.
 - 임시 글꼴은 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif. 원격 폰트 다운로드를 초기 빌드의 전제로 두지 않는다.
 - 본문 기본 크기는 body-xl 16px. 첨부 10~11px caption은 토큰으로 보존하되 핵심 설명·출처·조작에는 쓰지 않는다.
 - line-height는 display/headline/title 1.25, label 1.4, body/caption 1.6으로 시작한다. 사용자 제공 fontWeight는 그대로 유지한다.
 - 색상 단계는 Tailwind 기본 팔레트를 참조한 실제 CSS 색상 값으로 정의한다. Tailwind가 사용하지 않는 변수를 제거하더라도 동작하도록 직접 사용하는 CSS 변수에 의존한다.
-- primary의 단계는 teal, surface/outline/onSurface 단계는 slate를 기반으로 한다. 사용자 파일의 빨강~보라 계열은 각각 동명의 Tailwind 팔레트를 사용한다. Low 계열이 밝고 High 계열이 어두운 규칙으로 통일한다.
-- 단계 대응: UltraLow=50, Lowest=100, Lower=200, Low=300, Mid=400, High=600, Higher=700, Highest=800, UltraHigh=950. 기본 색상은 700. primary의 기본값은 위 #0f766e를 유지한다.
-- onPrimary 및 onRed 등 색상 표면 위의 글자색은 해당 배경에 대해 #0f172a와 #ffffff 중 대비가 높은 값을 선택한다. base와 각 단계별로 확인한다. onSurface는 별도의 본문 강도 계열로 slate 단계를 쓰고 base는 위 값을 유지한다.
-- overlay의 기본 불투명도는 0.24, Lowest=.04, Lower=.08, Low=.12, Mid=.24, High=.40, Higher=.56, Highest=.72. 원본에 존재하는 단계만 만든다. White=#ffffff, Gray=#64748b, Black=#000000.
-- transparent는 transparent, variant-backdrop은 overlay-black-high, variant-snackbar는 #0f172a.
-- 의미별 추가 토큰은 change-increase=blue 700, change-decrease=orange 700, change-neutral=slate 600으로 시작한다. 숫자 앞의 +/−와 설명을 함께 사용하여 색상만으로 정보를 전달하지 않는다. 이는 좋음/나쁨 평가가 아니다.
+- primary는 로즈 모브, surface/outline/onSurface는 연보라-회색 기반으로 둔다. 사용자 파일의 빨강~보라 계열도 화면에 추가할 때는 같은 명도의 저채도 파스텔을 사용한다. Low 계열이 밝고 High 계열이 어두운 규칙으로 통일한다.
+- 단계 대응: UltraLow=50, Lowest=100, Lower=200, Low=300, Mid=400, High=600, Higher=700, Highest=800, UltraHigh=950. 기본 색상은 Higher 단계이며 primary는 #a46f90을 사용한다.
+- onPrimary 및 onRed 등 색상 표면 위의 글자색은 해당 배경에 대해 #1c1720와 #ffffff 중 대비가 높은 값을 선택한다. base와 각 단계별로 확인한다. onSurface는 별도의 본문 강도 계열로 연보라-회색 단계를 쓰고 base는 위 값을 유지한다.
+- overlay의 기본 불투명도는 0.24, Lowest=.04, Lower=.08, Low=.12, Mid=.24, High=.40, Higher=.56, Highest=.72. 원본에 존재하는 단계만 만든다. White=#ffffff, Gray=#786d78, Black=#000000.
+- transparent는 transparent, variant-backdrop은 overlay-black-high, variant-snackbar는 #1c1720.
+- 의미별 추가 토큰은 change-increase=#6c8f82(세이지), change-decrease=#b77d8f(더스티 로즈), change-neutral=#786d78로 시작한다. 숫자 앞의 +/−와 설명을 함께 사용하여 색상만으로 정보를 전달하지 않는다. 이는 좋음/나쁨 평가가 아니다.
 - 스타일 확인 화면은 최대 1200px, 모바일 좌우 16px, md부터 24px 여백을 사용한다. 제품 최종 상세 페이지 배치는 다음 화면 설계에서 정한다.
 
 ### 반투명·라운드 재질과 크기
 
-사용자는 반투명 표면과 둥근 디자인을 기본으로 요청했다. 배경은 #eef1f6을 시작값으로 하고 연한 파랑·코랄의 정적인 색 번짐을 낮은 강도로 배치한다. 이는 glass 재질을 보이게 하는 바탕이며 큰 사진이나 장식용 히어로를 추가하는 요구가 아니다. primary의 최종 브랜드 색은 여전히 확정하지 않았다.
+사용자는 반투명 표면과 둥근 디자인을 기본으로 요청했다. 배경은 #f6f1f7을 시작값으로 하고 연한 라일락·피치·민트의 정적인 색 번짐을 낮은 강도로 배치한다. 이는 glass 재질을 보이게 하는 바탕이며 큰 사진이나 장식용 히어로를 추가하는 요구가 아니다. primary의 최종 브랜드 색은 여전히 확정하지 않았다.
 
 기존 surface=#ffffff는 읽기용 불투명 표면으로 유지하고 아래 역할별 토큰을 추가한다. 아래 수치는 시각 검토를 위한 초기값이며 실제 합성 배경에서 가독성을 확인한 뒤 조정한다.
 
 | 토큰 | 초기값 | 역할 |
 | --- | --- | --- |
-| --canvas | #eef1f6 | 전체 바탕 |
+| --canvas | #f6f1f7 | 전체 바탕 |
 | --surface-glass | rgb(255 255 255 / 72%) | 주요 패널·카드의 반투명 배경 |
 | --surface-glass-strong | rgb(255 255 255 / 90%) | 차트·세밀한 데이터 영역 |
-| --surface-glass-fallback | #f8fafc | 배경 흐림 미지원·투명도 감소 시 대체 |
+| --surface-glass-fallback | #fbf7fb | 배경 흐림 미지원·투명도 감소 시 대체 |
 | --outline-glass | rgb(255 255 255 / 65%) | 유리 표면의 1px 윤곽 |
 | --blur-glass | 16px | 주요 외곽 패널의 배경 흐림 |
 

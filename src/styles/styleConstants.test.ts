@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import {
@@ -33,5 +35,16 @@ describe("style constants", () => {
       expect(StyleColors[`${name}UltraHigh`]).toBe(`var(--${name}-ultra-high)`);
       expect(StyleColors[`on${title}UltraHigh`]).toBe(`var(--on-${name}-ultra-high)`);
     }
+  });
+
+  it("uses a pastel palette for translucent surfaces and change indicators", () => {
+    const theme = readFileSync(new URL("./theme.css", import.meta.url), "utf8");
+
+    expect(theme).toContain("--canvas: #f6f1f7;");
+    expect(theme).toContain("--primary: #a46f90;");
+    expect(theme).toContain("--surface-glass-fallback: #fbf7fb;");
+    expect(theme).toContain("--change-increase: #6c8f82;");
+    expect(theme).toContain("--change-decrease: #b77d8f;");
+    expect(theme).not.toContain("--primary: #0f766e;");
   });
 });
