@@ -43,7 +43,7 @@ describe("population CLI publication boundary", () => {
     await writeFile(input, csv);
     await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
     const output = path.join(directory, "output");
-    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output, "--work-root", directory])).toBe(2);
     const errors = JSON.parse(await readFile(path.join(output, "errors.json"), "utf8"));
     expect(errors.errors.counts).toEqual({ csv_structure_error: 1 });
     expect(errors.errors.samples[0]).toMatchObject({ entry: "input.csv", line: 3 });
@@ -57,7 +57,7 @@ describe("population CLI publication boundary", () => {
     const csv = POPULATION_HEADERS.join(",") + "\n" + ["20260201", "00", "00123456", "*", ...Array(28).fill("*")].join(",") + "\n";
     await writeFile(input, csv);
     await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
-    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output, "--work-root", directory])).toBe(2);
     expect((await readdir(output)).sort()).toEqual(["errors.json", "failure.json", "run.json"]);
   });
 
@@ -71,7 +71,7 @@ describe("population CLI publication boundary", () => {
     const contract = path.join(directory, "contract.json");
     await writeFile(contract, JSON.stringify(value));
     const code = await run("normalize-population.ts", ["--input", path.join(directory, "nonexistent.csv"),
-      "--contract", contract, "--output-dir", path.join(directory, "output")]);
+      "--contract", contract, "--output-dir", path.join(directory, "output"), "--work-root", directory]);
     expect(code).toBe(1);
     expect(await readdir(directory)).toEqual(["contract.json"]);
   });
@@ -83,7 +83,7 @@ describe("population CLI publication boundary", () => {
     await writeFile(input, csv);
     await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
     const output = path.join(directory, "output");
-    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(0);
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output, "--work-root", directory])).toBe(0);
     const monthly = JSON.parse(await readFile(path.join(output, "monthly.json"), "utf8"));
     expect(monthly).toMatchObject({ input: contractInput(), coverageStatus: "observed_only" });
     expect(monthly.methodId).toBeUndefined();
@@ -94,7 +94,7 @@ describe("population CLI publication boundary", () => {
     const input = path.join(directory, "input.csv"), contract = path.join(directory, "contract.json");
     await writeFile(input, "wrong source");
     await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: "a".repeat(64) }));
-    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", path.join(directory, "output")])).toBe(2);
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", path.join(directory, "output"), "--work-root", directory])).toBe(2);
     expect((await readdir(directory)).sort()).toEqual(["contract.json", "input.csv"]);
   });
 
@@ -104,7 +104,7 @@ describe("population CLI publication boundary", () => {
     await writeFile(changes, JSON.stringify([{ code: "bad" }]));
     expect(await run("compare-population.ts", [
       "--current-dir", path.join(directory, "missing-current"), "--previous-year-dir", path.join(directory, "missing-year"),
-      "--previous-month-dir", path.join(directory, "missing-month"), "--changes", changes, "--output-dir", output,
+      "--previous-month-dir", path.join(directory, "missing-month"), "--changes", changes, "--output-dir", output, "--work-root", directory,
     ])).toBe(1);
     await expect(readFile(path.join(output, "comparison.json"))).rejects.toThrow();
   });
@@ -129,7 +129,7 @@ describe("population CLI publication boundary", () => {
     const output = path.join(directory, "comparison");
     expect(await run("compare-population.ts", [
       "--current-dir", dirs[0], "--previous-year-dir", dirs[1], "--previous-month-dir", dirs[2],
-      "--changes", changes, "--output-dir", output,
+      "--changes", changes, "--output-dir", output, "--work-root", directory,
     ])).toBe(verified ? 0 : 2);
     const result = JSON.parse(await readFile(path.join(output, "comparison.json"), "utf8"));
     expect(result.comparisons[0].mode).toBe(verified ? "same_month_previous_year" : "unavailable");
@@ -149,7 +149,7 @@ describe("population CLI publication boundary", () => {
     await writeNormalizationOutput(previousYearDir, { ...complete("202507", "100.000000"), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, {});
     const changes = path.join(directory, "changes.json"), output = path.join(directory, "comparison");
     await writeFile(changes, "[]");
-    expect(await run("compare-population.ts", ["--current-dir", currentDir, "--previous-year-dir", previousYearDir, "--previous-month-dir", previousMonthDir, "--changes", changes, "--output-dir", output])).toBe(0);
+    expect(await run("compare-population.ts", ["--current-dir", currentDir, "--previous-year-dir", previousYearDir, "--previous-month-dir", previousMonthDir, "--changes", changes, "--output-dir", output, "--work-root", directory])).toBe(0);
     const result = JSON.parse(await readFile(path.join(output, "comparison.json"), "utf8"));
     expect(result.comparisons[0]).toMatchObject({ mode: "previous_month", comparisonPeriod: "202606", candidateFailures: [{ period: "202507", reasons: ["invalid_source"] }] });
   });

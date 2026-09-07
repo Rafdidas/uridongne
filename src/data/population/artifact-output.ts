@@ -5,6 +5,9 @@ import path from "node:path";
 import type { MonthAggregation } from "./aggregate-month";
 import { parseFailureEnvelope, parseSuccessManifest, type PopulationFailureEnvelope, type PopulationSuccessManifest } from "./artifact-contract";
 import { fromMonthResult, parseMonthResult, toMonthResult, type MonthErrors, type MonthResult } from "./month-result";
+import { assertPopulationOutputPath } from "./output-path";
+
+export interface PopulationOutputOptions { workRoot?: string }
 
 export type PopulationCandidateOutcome =
   | { kind: "success"; monthly: MonthAggregation }
@@ -48,7 +51,9 @@ function runMetadata(metadata: Record<string, unknown>, period: string, status: 
   };
 }
 
-export async function writeNormalizationOutput(outputDir: string, monthly: MonthAggregation, metadata: Record<string, unknown>): Promise<void> {
+export async function writeNormalizationOutput(outputDir: string, monthly: MonthAggregation, metadata: Record<string, unknown>, options: PopulationOutputOptions = {}): Promise<void> {
+  const validatedOutputDir = options.workRoot ? await assertPopulationOutputPath(outputDir, options.workRoot) : outputDir;
+  outputDir = validatedOutputDir;
   const parent = path.dirname(outputDir);
   const staging = await createStaging(outputDir);
   try {
@@ -84,7 +89,9 @@ export async function writeNormalizationOutput(outputDir: string, monthly: Month
   }
 }
 
-export async function writeComparisonOutput(outputDir: string, comparison: unknown, metadata: Record<string, unknown> = {}): Promise<void> {
+export async function writeComparisonOutput(outputDir: string, comparison: unknown, metadata: Record<string, unknown> = {}, options: PopulationOutputOptions = {}): Promise<void> {
+  const validatedOutputDir = options.workRoot ? await assertPopulationOutputPath(outputDir, options.workRoot) : outputDir;
+  outputDir = validatedOutputDir;
   const parent = path.dirname(outputDir);
   const staging = await createStaging(outputDir);
   try {

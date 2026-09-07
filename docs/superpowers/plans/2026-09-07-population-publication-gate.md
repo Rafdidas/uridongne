@@ -92,12 +92,12 @@ const crosses = change.effectiveDate > start && change.effectiveDate <= currentM
 
 **Interfaces:** 기존 bytes reader를 유지한다. 출력 writer에는 명시적 workRoot 옵션을 추가하고 CLI는 프로젝트 data/work를 전달한다. 테스트는 임시 프로젝트의 data/work를 사용한다.
 
-- [ ] readPopulationRows의 stat 선검사를 복원하고 설정 값은 읽기 전에 검사한다. 실제 읽은 Buffer 길이도 재검사한다. 파일이 읽는 중 커지는 경우의 하드 제한은 한 번 열린 핸들에서 제한 길이로 읽는 방식을 사용한다.
-- [ ] outputDir는 workRoot의 엄격한 하위 경로여야 한다. workRoot 자체·상위 탈출·기존 링크/재분석 지점 경유를 거부한다. 현재 미존재 경로는 가장 가까운 기존 부모의 실제 경로부터 검증한다.
-- [ ] 동일 출력에 두 writer가 경합하면 정확히 하나만 성공해야 하며, 실패한 writer는 자신의 staging만 정리해야 한다. 성공본 해시와 기존 출력 보존을 확인한다.
-- [ ] maxRssBytes는 현재값이므로 우선 rssAtEndBytes로 정정한다. 시작/종료 시각, elapsedMs의 측정 구간(입력 로드 시작~집계 완료)을 명시한다. 실제 최대 RSS 요구는 별도 high-water 측정이 검증되기 전까지 미완료로 남긴다.
-- [ ] 0과 00 시간 중복, 윤년 696슬롯, 행 순서 역전, 중복으로 총 행 수를 맞춘 누락의 회귀 사례를 추가한다. 기존 Uint8Array 구현을 보존한다.
-- [ ] 실행: read-rows, aggregate-month, artifact-output, population-cli 테스트, lint, typecheck. README의 메모리 측정 표현을 실제 필드에 맞춘다.
+- [x] readPopulationRows의 stat 선검사를 복원하고 설정 값은 읽기 전에 검사한다. 실제 읽은 Buffer 길이도 재검사한다. 파일이 읽는 중 커지는 경우의 하드 제한은 한 번 열린 핸들에서 제한 길이로 읽는 방식을 사용한다.
+- [x] outputDir는 workRoot의 엄격한 하위 경로여야 한다. workRoot 자체·상위 탈출·기존 링크/재분석 지점 경유를 거부한다. 현재 미존재 경로는 가장 가까운 기존 부모의 실제 경로부터 검증한다.
+- [x] 동일 출력에 두 writer가 경합하면 정확히 하나만 성공해야 하며, 실패한 writer는 자신의 staging만 정리해야 한다. 성공본 해시와 기존 출력 보존을 확인한다.
+- [x] maxRssBytes는 현재값이므로 우선 rssAtEndBytes로 정정한다. 시작/종료 시각, elapsedMs의 측정 구간(입력 로드 시작~집계 완료)을 명시한다. 실제 최대 RSS 요구는 별도 high-water 측정이 검증되기 전까지 미완료로 남긴다.
+- [x] 0과 00 시간 중복, 윤년 696슬롯, 행 순서 역전, 중복으로 총 행 수를 맞춘 누락의 회귀 사례를 추가한다. 기존 Uint8Array 구현을 보존한다.
+- [x] 실행: read-rows, aggregate-month, artifact-output, population-cli 테스트, lint, typecheck. README의 메모리 측정 표현을 실제 필드에 맞춘다.
 
 ## Task 5 — 새 형식 실원본 인수 검증
 

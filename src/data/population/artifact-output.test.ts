@@ -85,6 +85,17 @@ describe("population artifact publication", () => {
     expect(await readdir(path.dirname(output))).toEqual(["result"]);
   });
 
+  it("allows exactly one concurrent writer to publish an output", async () => {
+    const output = await target();
+    const results = await Promise.allSettled([
+      writeNormalizationOutput(output, month(), metadata()),
+      writeNormalizationOutput(output, month(), metadata()),
+    ]);
+    expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
+    expect(await readdir(output)).toContain("complete.json");
+    expect((await readdir(path.dirname(output))).filter(name => name.includes(".tmp-")).length).toBe(0);
+  });
+
   it("rejects a directory containing both success and failure markers", async () => {
     const output = await target();
     await writeNormalizationOutput(output, month(), metadata());

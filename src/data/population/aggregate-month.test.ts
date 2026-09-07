@@ -72,6 +72,20 @@ describe("aggregatePopulation", () => {
     expect(result.errors[0]).toContain("duplicate slot");
   });
 
+  it("treats 0 and 00 as the same hour slot", async () => {
+    const first = row("20260201", 0, "00123456", "10");
+    const second = { ...first, line: 3, values: { ...first.values, 시간: "00", 생활인구합계: "11" } };
+    const result = await aggregatePopulation("202602", rows([first, second]));
+    expect(result.errors[0]).toContain("duplicate slot");
+  });
+
+  it("uses 696 slots for February in a leap year", async () => {
+    const values: LocatedRow[] = [];
+    for (let day = 1; day <= 29; day += 1) for (let hour = 0; hour < 24; hour += 1) values.push(row(`202402${String(day).padStart(2, "0")}`, hour, "00123456", "100"));
+    const result = await aggregatePopulation("202402", rows(values));
+    expect(result.dongs["00123456"]).toMatchObject({ count: 696, missingSlots: 0, status: "complete" });
+  });
+
   it("can require an expected administrative-dong registry", async () => {
     const result = await aggregatePopulation("202602", rows([row("20260201", 0, "00123456", "10")]), {
       expectedDongCodes: ["00123456", "00999999"],

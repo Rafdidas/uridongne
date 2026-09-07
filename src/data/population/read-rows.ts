@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -152,7 +152,12 @@ export async function* readPopulationRows(inputPath: string,
   overrides: Partial<PopulationReadLimits> = {},
 ): AsyncGenerator<LocatedRow> {
   try {
+    const declaredSize = (await stat(inputPath)).size;
+    const archiveLimit = overrides.archiveBytes ?? POPULATION_READ_LIMITS.archiveBytes;
+    if (!Number.isSafeInteger(archiveLimit) || archiveLimit <= 0) throw new Error("invalid population read limits");
+    if (declaredSize > archiveLimit) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
     const inputBytes = await readFile(inputPath);
+    if (inputBytes.byteLength > archiveLimit) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
     yield* readPopulationRowsFromBytes(inputBytes, inputPath, onEntry, overrides);
   } catch (error) {
     if (error instanceof PopulationSourceError) throw error;

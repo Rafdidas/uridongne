@@ -42,8 +42,8 @@ pnpm build
 ```bash
 pnpm data:inspect -- --kind population --period YYYYMM --input <local-official-file> --output <profile.json> --schema <schema-json>
 pnpm data:compare -- --current <profile> --previous-year <profile> --previous-month <profile> --output <comparison.json>
-pnpm data:normalize-population -- --input <local-official-file> --contract <contract.json> --output-dir <local-work-dir>
-pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir <previous-year-dir> --previous-month-dir <previous-month-dir> --changes <changes.json> --output-dir <comparison-dir>
+pnpm data:normalize-population -- --input <local-official-file> --contract <contract.json> --output-dir data/work/<run> --work-root data/work
+pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir <previous-year-dir> --previous-month-dir <previous-month-dir> --changes <changes.json> --output-dir data/work/<comparison> --work-root data/work
 ```
 
 `--schema`에는 `date`, `hour`, `dongCode`, `totalPopulation`에 대응하는 실제 헤더명을 JSON 객체로 전달합니다. 측정 결과는 [원본 표본 검증 보고서](docs/data/2026-09-04-source-sample-validation.md)에서 확인할 수 있습니다.

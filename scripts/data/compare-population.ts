@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import { compareMonths, parseAreaChanges } from "../../src/data/population/compare-months";
 import { readCandidateOutcome, writeComparisonOutput } from "../../src/data/population/artifact-output";
@@ -10,7 +11,7 @@ async function main(): Promise<void> {
   let args: Record<string, string>;
   let changes: ReturnType<typeof parseAreaChanges>;
   try {
-    args = parseNamedArgs(argv[0] === "--" ? argv.slice(1) : argv, ["current-dir", "previous-year-dir", "previous-month-dir", "changes", "output-dir"]);
+    args = parseNamedArgs(argv[0] === "--" ? argv.slice(1) : argv, ["current-dir", "previous-year-dir", "previous-month-dir", "changes", "output-dir", "work-root"]);
     changes = parseAreaChanges(JSON.parse(await readFile(args.changes, "utf8")));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
@@ -36,7 +37,7 @@ async function main(): Promise<void> {
   try {
     const comparison = compareMonths(current, previousYear, previousMonth, changes);
     const output = { currentPeriod: current.period, comparisons: comparison };
-    await writeComparisonOutput(args["output-dir"], output, { currentPeriod: current.period });
+    await writeComparisonOutput(args["output-dir"], output, { currentPeriod: current.period }, { workRoot: args["work-root"] ?? path.resolve("data/work") });
     if (comparison.length === 0 || comparison.every(result => result.mode === "unavailable")) process.exitCode = 2;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
