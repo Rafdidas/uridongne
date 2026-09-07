@@ -28,7 +28,7 @@
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-07 오류/스트림 보완 후 테스트 115개, lint·typecheck·Next build 통과 |
+| 앱 빌드·테스트 | 2026-09-07 공개 전 검증 보완 후 테스트 125개, lint·typecheck 통과. Next build는 이전 단계에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
@@ -179,11 +179,11 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 기존 설계 문서와 handoff 변경을 보존했다. 이번 작업은 문서 편집과 diff 검사만 수행했으며 코드·테스트·설정 변경, 커밋·push는 없다.
 - 다음은 구현용 모델 전환 확인 후 새 계획 Task 1이다.
 
-### 2026-09-07 — 월 산출물 불변식 보완
+### 2026-09-07 — 월 산출물 불변식 보완 및 push
 
 - 구현용 모델 전환 후 계획 Task 1을 실행했다. 완결 월 fixture를 실제 202602 672슬롯으로 맞추고 평균·합계 일관성을 검증했다.
 - `parseMonthResult`가 달력 기반 expectedCount, 관측 양수의 날짜 필수, 빈 관측의 0합계, complete의 월 첫날·마지막날, expected registry 코드 일치를 검사한다. invalid 진단이 없으면 임의 오류 건수를 만들지 않는다.
-- 테스트 20개 파일·125개 통과, lint, typecheck 통과. 이번 단계는 로컬 코드와 테스트·문서만 변경했으며 push하지 않았다.
+- 테스트 20개 파일·125개 통과, lint, typecheck 통과. 커밋 `b26cfde`로 저장했고 사용자의 명시 요청에 따라 `codex/population-validation-fixes` 원격 브랜치까지 push했다. 다음은 Task 2 형식 버전·성공/실패 산출물 봉투 검증이다.
 
 ### 2026-09-07 — D1·조회 설계 및 완료 범위 정정
 
