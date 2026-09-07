@@ -14,6 +14,17 @@ async function* rows(values: LocatedRow[]): AsyncGenerator<LocatedRow> {
 }
 
 describe("aggregatePopulation", () => {
+  it("does not approve an empty source as complete", async () => {
+    const result = await aggregatePopulation("202602", rows([]));
+    expect(result.status).toBe("invalid");
+    expect(result.dongs).toEqual({});
+  });
+
+  it("keeps invalid status when error sample collection is disabled", async () => {
+    const result = await aggregatePopulation("202602", rows([row("20260201", 0, "00123456", "*")]), { maxErrors: 0 });
+    expect(result.status).toBe("invalid");
+    expect(result.dongs).toEqual({});
+  });
   it("aggregates complete February coverage with exact decimal arithmetic", async () => {
     const values: LocatedRow[] = [];
     for (let day = 1; day <= 28; day += 1) {

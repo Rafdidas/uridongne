@@ -24,6 +24,45 @@ const month = (period: string, mean: string, status: "complete" | "incomplete" =
 });
 
 describe("compareMonths", () => {
+  it("keeps complete dongs comparable when another dong has missing slots", () => {
+    const current = month("202607", "150.000000");
+    const prior = month("202507", "100.000000");
+    for (const value of [current, prior]) {
+      value.status = "incomplete";
+      value.dongs["00999999"] = { dongCode: "00999999", count: 0, sumMicros: BigInt(0), mean: null, missingSlots: 1, status: "incomplete" };
+    }
+    const result = compareMonths(current, prior, month("202606", "120.000000"));
+    expect(result[0].mode).toBe("same_month_previous_year");
+    expect(result[1].mode).toBe("unavailable");
+  });
+
+  it("allows fallback from an invalid source with no dongs", () => {
+    const prior = { ...month("202507", "100.000000"), status: "invalid" as const, dongs: {}, errors: ["duplicate slot"] };
+    const [result] = compareMonths(month("202607", "150.000000"), prior, month("202606", "120.000000"));
+    expect(result.mode).toBe("previous_month");
+    expect(result.reasons).toContain("invalid_source");
+  });
+
+  it("ignores boundary changes before the comparison period", () => {
+    const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { dongCode: "00123456", effectivePeriod: "202401" },
+    ]);
+    expect(result.mode).toBe("same_month_previous_year");
+  });
+
+  it("retains both candidate failures", () => {
+    const prior = month("202507", "100.000000");
+    prior.methodId = "different";
+    const [result] = compareMonths(month("202607", "150.000000"), prior, month("202606", "120.000000", "incomplete"));
+    expect(result.reasons).toEqual(["method_mismatch", "candidate_incomplete"]);
+  });
+
+  it("blocks fallback when the year candidate crosses a boundary change", () => {
+    const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { dongCode: "00123456", effectivePeriod: "202601" },
+    ]);
+    expect(result.reason).toBe("administrative_area_changed");
+  });
   it("prefers the complete same-month previous-year candidate", () => {
     const [comparison] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"));
     expect(comparison).toMatchObject({ mode: "same_month_previous_year", difference: "50.000000", percent: "50.000000" });

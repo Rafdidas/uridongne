@@ -8,6 +8,8 @@
 
 초기 개발 환경과 디자인 토큰을 준비했고, 서울시 상권·생활인구 실원본의 결정적 프로파일과 생활인구 월별 정규화·동별 비교 CLI를 구현했습니다. 방법 근거가 확인되지 않은 비교는 의도적으로 `unavailable`로 남깁니다. 자세한 작업 기록은 [handoff.md](handoff.md)를 참고하세요.
 
+정규화 CLI는 로컬 검증용입니다. 입력 계약·공식 코드 목록·방법 근거 검증 등 승인 설계의 일부는 아직 미구현이며, D1 적재·서비스 공개 전 보완이 필요합니다.
+
 ## 기술 구성
 
 - Next.js 16 · React 19 · TypeScript
@@ -46,6 +48,8 @@ pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir 
 
 `--schema`에는 `date`, `hour`, `dongCode`, `totalPopulation`에 대응하는 실제 헤더명을 JSON 객체로 전달합니다. 측정 결과는 [원본 표본 검증 보고서](docs/data/2026-09-04-source-sample-validation.md)에서 확인할 수 있습니다.
 정규화 계약·실행 결과는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)과 `data/source-contracts/`에서 확인할 수 있습니다.
+
+출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월을 읽을 때는 manifest와 monthly/run 해시를 모두 검사합니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
 
 OpenNext 빌드는 Windows에서 심볼릭 링크 권한 제약으로 실패할 수 있습니다. 현재는 WSL 또는 Linux CI에서 재검증이 필요합니다.
 

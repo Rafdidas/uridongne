@@ -16,6 +16,7 @@ async function main(): Promise<void> {
   const comparison = compareMonths(current, previousYear, previousMonth, changes);
   const output = { currentPeriod: current.period, comparisons: comparison };
   await writeComparisonOutput(args["output-dir"], output, { currentPeriod: current.period });
+  if (comparison.length === 0 || comparison.every(result => result.mode === "unavailable")) process.exitCode = 2;
 }
 
 main().catch((error) => { console.error(error instanceof Error ? error.message : String(error)); process.exitCode = 2; });

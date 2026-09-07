@@ -38,8 +38,11 @@ export async function aggregatePopulation(
   const sums = new Map<string, { count: number; sumMicros: bigint }>();
   const slots = new Set<string>();
   const errors: string[] = [];
+  let invalid = false;
+  let rowCount = 0;
 
   for await (const row of rows) {
+    rowCount += 1;
     try {
       const observation = parseObservation(row, period);
       const slot = `${observation.dongCode}:${observation.date}:${observation.hour}`;
@@ -50,8 +53,14 @@ export async function aggregatePopulation(
       current.sumMicros += observation.populationMicros;
       sums.set(observation.dongCode, current);
     } catch (error) {
+      invalid = true;
       if (errors.length < maxErrors) errors.push(error instanceof Error ? error.message : String(error));
     }
+  }
+
+  if (rowCount === 0) {
+    invalid = true;
+    if (errors.length < maxErrors) errors.push("empty population source");
   }
 
   const dongCodes = new Set<string>(sums.keys());
@@ -76,10 +85,10 @@ export async function aggregatePopulation(
 
   return {
     period,
-    status: errors.length > 0 ? "invalid" : hasIncomplete ? "incomplete" : "complete",
+    status: invalid ? "invalid" : hasIncomplete ? "incomplete" : "complete",
     expectedSlotsPerDong,
     observedSlots: slots.size,
-    dongs: errors.length > 0 ? {} : dongs,
+    dongs: invalid ? {} : dongs,
     errors,
   };
 }

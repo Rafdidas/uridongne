@@ -53,15 +53,15 @@ function difference(current: DongAggregation, candidate: DongAggregation): { val
 }
 
 function compatible(current: MonthAggregation, candidate: MonthAggregation, dongCode: string, reasons: string[]): DongAggregation | null {
-  if (!candidate.dongs[dongCode]) {
-    reasons.push("administrative_area_unverified");
-    return null;
-  }
   if (candidate.status === "invalid") {
     reasons.push("invalid_source");
     return null;
   }
-  if (candidate.status !== "complete" || candidate.dongs[dongCode]?.status !== "complete") {
+  if (!candidate.dongs[dongCode]) {
+    reasons.push("administrative_area_unverified");
+    return null;
+  }
+  if (candidate.dongs[dongCode].status !== "complete") {
     reasons.push("candidate_incomplete");
     return null;
   }
@@ -86,23 +86,18 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
     if (current.status === "invalid") {
       return { dongCode, mode: "unavailable", currentValue: null, candidateValue: null, difference: null, percent: null, reason: "invalid_source", reasons: ["invalid_source"] };
     }
-    if (!currentDong || current.status !== "complete" || currentDong.status !== "complete") {
+    if (!currentDong || currentDong.status !== "complete") {
       return { dongCode, mode: "unavailable", currentValue: currentDong?.mean ?? null, candidateValue: null, difference: null, percent: null, reason: "current_incomplete", reasons: ["current_incomplete"] };
     }
-    const changed = changes.some((change) => change.dongCode === dongCode && change.effectivePeriod <= current.period);
+    const changed = changes.some((change) => change.dongCode === dongCode && change.effectivePeriod > previousYear.period && change.effectivePeriod <= current.period);
     if (changed) return { dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] };
     let candidate = compatible(current, previousYear, dongCode, reasons);
     let mode: DongComparison["mode"] = "same_month_previous_year";
-    if (!candidate) {
-      const priorReasons = [...reasons];
-      reasons.length = 0;
+    if (!candidate && !reasons.includes("administrative_area_unverified")) {
       candidate = compatible(current, previousMonth, dongCode, reasons);
-      if (candidate && priorReasons.includes("administrative_area_unverified")) candidate = null;
       if (candidate) {
         mode = "previous_month";
-        reasons.unshift(...priorReasons);
       }
-      else if (priorReasons.includes("administrative_area_unverified")) reasons.splice(0, reasons.length, ...priorReasons);
     }
     if (!candidate) {
       const reason = reasons[0] ?? "unavailable";
