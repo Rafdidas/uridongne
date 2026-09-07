@@ -1,0 +1,6 @@
+{
+  "period": "202606",
+  "methodId": "official-hourly-mean-v1",
+  "methodStatus": "unverified",
+  "expectedSha256": "de7948a1002cfa135c8bb66c4ee1ba1c45963ebfc97dd650a94e3cb7a660f872"
+}

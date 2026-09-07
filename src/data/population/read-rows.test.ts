@@ -57,8 +57,9 @@ describe("readPopulationRows", () => {
     const filePath = path.join(directory, "broken.csv");
     await writeFile(filePath, "일자,시간,행정동코드\n20260701,00,00123456\n", "utf8");
     await expect(async () => {
-      for await (const _rowValue of readPopulationRows(filePath)) {
+      for await (const rowValue of readPopulationRows(filePath)) {
         // Consume the iterator to trigger header validation.
+        void rowValue;
       }
     }).rejects.toThrow("population header mismatch");
     await rm(directory, { recursive: true, force: true });

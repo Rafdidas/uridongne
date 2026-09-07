@@ -6,7 +6,7 @@
 
 ## 현재 상태
 
-초기 개발 환경과 디자인 토큰을 준비했고, 서울시 상권·생활인구 실원본의 결정적 프로파일과 불변식 검증을 완료했습니다. 생활인구 월별 파일 구성 정규화·D1 스키마·동네 검색은 다음 단계에서 구현합니다. 자세한 작업 기록은 [handoff.md](handoff.md)를 참고하세요.
+초기 개발 환경과 디자인 토큰을 준비했고, 서울시 상권·생활인구 실원본의 결정적 프로파일과 생활인구 월별 정규화·동별 비교 CLI를 구현했습니다. 방법 근거가 확인되지 않은 비교는 의도적으로 `unavailable`로 남깁니다. 자세한 작업 기록은 [handoff.md](handoff.md)를 참고하세요.
 
 ## 기술 구성
 
@@ -40,9 +40,12 @@ pnpm build
 ```bash
 pnpm data:inspect -- --kind population --period YYYYMM --input <local-official-file> --output <profile.json> --schema <schema-json>
 pnpm data:compare -- --current <profile> --previous-year <profile> --previous-month <profile> --output <comparison.json>
+pnpm data:normalize-population -- --input <local-official-file> --contract <contract.json> --output-dir <local-work-dir>
+pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir <previous-year-dir> --previous-month-dir <previous-month-dir> --changes <changes.json> --output-dir <comparison-dir>
 ```
 
 `--schema`에는 `date`, `hour`, `dongCode`, `totalPopulation`에 대응하는 실제 헤더명을 JSON 객체로 전달합니다. 측정 결과는 [원본 표본 검증 보고서](docs/data/2026-09-04-source-sample-validation.md)에서 확인할 수 있습니다.
+정규화 계약·실행 결과는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)과 `data/source-contracts/`에서 확인할 수 있습니다.
 
 OpenNext 빌드는 Windows에서 심볼릭 링크 권한 제약으로 실패할 수 있습니다. 현재는 WSL 또는 Linux CI에서 재검증이 필요합니다.
 

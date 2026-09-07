@@ -4,7 +4,7 @@ import path from "node:path";
 import AdmZip from "adm-zip";
 import { parse } from "csv-parse";
 
-import { decodeText, detectDelimiter } from "../profiling/archive";
+import { decodeText } from "../profiling/archive";
 import { POPULATION_HEADERS } from "./schema";
 import type { LocatedRow } from "./types";
 
@@ -25,10 +25,34 @@ function normalizeHeaderDelimiter(text: string, delimiter: string): string {
   const header = text.slice(0, lineBreakIndex);
   const candidates = [",", ";", "\t", "|"];
   const headerDelimiter = candidates
-    .map((candidate) => ({ candidate, count: header.split(candidate).length - 1 }))
+    .map((candidate) => ({ candidate, count: splitDelimitedLine(header, candidate).length - 1 }))
     .sort((left, right) => right.count - left.count)[0]?.candidate ?? delimiter;
   if (headerDelimiter === delimiter) return text;
   return `${header.replaceAll(headerDelimiter, delimiter)}${text.slice(lineBreakIndex)}`;
+}
+
+function splitDelimitedLine(line: string, delimiter: string): string[] {
+  const values: string[] = [];
+  let value = "";
+  let quoted = false;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (character === '"') {
+      if (quoted && line[index + 1] === '"') { value += '"'; index += 1; }
+      else quoted = !quoted;
+    } else if (character === delimiter && !quoted) { values.push(value); value = ""; }
+    else value += character;
+  }
+  values.push(value);
+  return values;
+}
+
+function detectPopulationDelimiter(text: string): "," | ";" | "\t" | "|" {
+  const lines = text.split(/\r?\n/).filter((line) => line.length > 0);
+  const sample = lines[1] ?? lines[0] ?? "";
+  return [",", ";", "\t", "|"]
+    .map((delimiter) => ({ delimiter, count: splitDelimitedLine(sample, delimiter).length - 1 }))
+    .sort((left, right) => right.count - left.count)[0]?.delimiter as "," | ";" | "\t" | "|";
 }
 
 function validateHeaders(headers: string[]): void {
@@ -45,7 +69,7 @@ function validateHeaders(headers: string[]): void {
 async function* parseEntry(name: string, bytes: Uint8Array): AsyncGenerator<LocatedRow> {
   if (bytes.byteLength > LIMITS.entryBytes) throw new Error(`population entry exceeds limit: ${name}`);
   const decoded = decodeText(bytes);
-  const delimiter = detectDelimiter(decoded.text);
+  const delimiter = detectPopulationDelimiter(decoded.text);
   const text = normalizeHeaderDelimiter(decoded.text, delimiter);
   let line = 1;
   const parser = parse(text, {
@@ -82,10 +106,10 @@ export async function* readPopulationRows(
     totalBytes += bytes.byteLength;
     if (totalBytes > LIMITS.totalBytes) throw new Error("population expanded bytes exceed limit");
     const decoded = decodeText(bytes);
-    const delimiter = detectDelimiter(decoded.text);
+    const delimiter = detectPopulationDelimiter(decoded.text);
     const text = normalizeHeaderDelimiter(decoded.text, delimiter);
     const headerLine = text.split(/\r?\n/, 1)[0] ?? "";
-    const headers = headerLine.split(delimiter).map((header) => header.replace(/^\uFEFF/, ""));
+    const headers = splitDelimitedLine(headerLine, delimiter).map((header) => header.replace(/^\uFEFF/, ""));
     validateHeaders(headers);
     let rowCount = 0;
     for await (const row of parseEntry(entry.entryName, bytes)) {
