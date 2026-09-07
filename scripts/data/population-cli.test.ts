@@ -98,6 +98,17 @@ describe("population CLI publication boundary", () => {
     expect((await readdir(directory)).sort()).toEqual(["contract.json", "input.csv"]);
   });
 
+  it("rejects invalid changes as configuration before reading candidate outputs", async () => {
+    const directory = await workspace();
+    const changes = path.join(directory, "changes.json"), output = path.join(directory, "comparison");
+    await writeFile(changes, JSON.stringify([{ code: "bad" }]));
+    expect(await run("compare-population.ts", [
+      "--current-dir", path.join(directory, "missing-current"), "--previous-year-dir", path.join(directory, "missing-year"),
+      "--previous-month-dir", path.join(directory, "missing-month"), "--changes", changes, "--output-dir", output,
+    ])).toBe(1);
+    await expect(readFile(path.join(output, "comparison.json"))).rejects.toThrow();
+  });
+
   it.each([false, true])("returns the comparison result status for verified=%s", async (verified) => {
     const directory = await workspace();
     const dirs = ["current", "year", "month"].map(name => path.join(directory, name));
@@ -122,5 +133,24 @@ describe("population CLI publication boundary", () => {
     ])).toBe(verified ? 0 : 2);
     const result = JSON.parse(await readFile(path.join(output, "comparison.json"), "utf8"));
     expect(result.comparisons[0].mode).toBe(verified ? "same_month_previous_year" : "unavailable");
+  });
+
+  it("reads a real failure envelope and preserves invalid_source candidate failure", async () => {
+    const directory = await workspace();
+    const currentDir = path.join(directory, "current"), previousYearDir = path.join(directory, "previous-year"), previousMonthDir = path.join(directory, "previous-month");
+    const complete = (period: string, mean: string): MonthAggregation => ({
+      period, status: "complete", expectedSlotsPerDong: daysInMonth(period) * 24, observedSlots: daysInMonth(period) * 24,
+      errors: [], coverageStatus: "observed_only", methodId: "fixture", methodStatus: "verified",
+      input: { ...contractInput(period), method: { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] } },
+      dongs: { "00123456": { dongCode: "00123456", count: daysInMonth(period) * 24, sumMicros: BigInt(daysInMonth(period) * 24) * BigInt(Math.round(Number(mean) * 1_000_000)), mean, missingSlots: 0, status: "complete", firstDate: `${period}01`, lastDate: `${period}${String(daysInMonth(period)).padStart(2, "0")}`, missingRate: 0 } },
+    });
+    await writeNormalizationOutput(currentDir, complete("202607", "150.000000"), {});
+    await writeNormalizationOutput(previousMonthDir, complete("202606", "120.000000"), {});
+    await writeNormalizationOutput(previousYearDir, { ...complete("202507", "100.000000"), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, {});
+    const changes = path.join(directory, "changes.json"), output = path.join(directory, "comparison");
+    await writeFile(changes, "[]");
+    expect(await run("compare-population.ts", ["--current-dir", currentDir, "--previous-year-dir", previousYearDir, "--previous-month-dir", previousMonthDir, "--changes", changes, "--output-dir", output])).toBe(0);
+    const result = JSON.parse(await readFile(path.join(output, "comparison.json"), "utf8"));
+    expect(result.comparisons[0]).toMatchObject({ mode: "previous_month", comparisonPeriod: "202606", candidateFailures: [{ period: "202507", reasons: ["invalid_source"] }] });
   });
 });

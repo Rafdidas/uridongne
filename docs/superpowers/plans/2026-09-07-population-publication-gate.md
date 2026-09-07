@@ -72,19 +72,19 @@ const result = parseMonthResult(JSON.parse(bytes.toString("utf8")));
 
 **Interfaces:** parseAreaChanges(value: unknown): AreaChange[] 유지. compareMonths는 입력 변경 목록도 검증한다. 후보별 기간과 reasons를 보존하며 기존 내부 호환 필드는 D1 연결 때 제거 여부를 따로 정한다.
 
-- [ ] 전년 후보 202507에 대해 2025-07-01 변경은 전체 후보가 변경 후 기준이므로 허용하고, 2025-07-15 변경은 차단하는 테스트를 만든다. 현재 월 마지막 날 변경도 차단하고 다음 달 첫날은 영향을 주지 않아야 한다.
+- [x] 전년 후보 202507에 대해 2025-07-01 변경은 전체 후보가 변경 후 기준이므로 허용하고, 2025-07-15 변경은 차단하는 테스트를 만든다. 현재 월 마지막 날 변경도 차단하고 다음 달 첫날은 영향을 주지 않아야 한다.
 
 ```ts
 const start = `${previousYear.period.slice(0, 4)}-${previousYear.period.slice(4)}-01`;
 const crosses = change.effectiveDate > start && change.effectiveDate <= currentMonthEnd;
 ```
 
-- [ ] 일반 후보의 경계 변경·코드 부재는 전월 대체 사유가 아니다. 무효 전년 원천은 코드 부재로 해석하지 않고 invalid_source로 평가한다. 알려진 경계 변경이 있는 경우에는 전년 원천 무효라도 자동 비교를 허용하지 않는 보수적 정책을 유지한다.
-- [ ] boundary 차단도 candidateFailures에 후보 기간과 사유를 남긴다. 평가하지 않은 후보의 실패를 만들지 않는다. fallbackReason은 실제 전년 실패 사유를 사용하고 성공 전월을 failures에 넣지 않는다.
-- [ ] args와 변경 JSON은 원본 읽기 전에 검증한다. 잘못된 설정·후보 기간은 PopulationConfigurationError로 코드 1, 해시/형식 손상은 코드 2다.
-- [ ] invalid MonthResult를 내부 invalid 집계로 바꾸는 변환기는 타입 검증된 필드만 사용한다. unknown 이중 단언을 제거한다.
-- [ ] 실제 CLI 테스트: 정상 현재·실패 전년·정상 전월은 previous_month, comparisonPeriod=202606, candidateFailures의 202507 invalid_source를 출력한다. 잘못된 changes는 1, 손상 완료 파일은 2이며 비교 결과를 발행하지 않는다.
-- [ ] 값 150/100은 차이50·50%, 150/120은 차이30·25%, 이전0은 비율만 null을 검증한다. 실행: compare-months 및 population-cli 테스트, typecheck.
+- [x] 일반 후보의 경계 변경·코드 부재는 전월 대체 사유가 아니다. 무효 전년 원천은 코드 부재로 해석하지 않고 invalid_source로 평가한다. 알려진 경계 변경이 있는 경우에는 전년 원천 무효라도 자동 비교를 허용하지 않는 보수적 정책을 유지한다.
+- [x] boundary 차단도 candidateFailures에 후보 기간과 사유를 남긴다. 평가하지 않은 후보의 실패를 만들지 않는다. fallbackReason은 실제 전년 실패 사유를 사용하고 성공 전월을 failures에 넣지 않는다.
+- [x] args와 변경 JSON은 원본 읽기 전에 검증한다. 잘못된 설정·후보 기간은 PopulationConfigurationError로 코드 1, 해시/형식 손상은 코드 2다.
+- [x] invalid MonthResult를 내부 invalid 집계로 바꾸는 변환기는 타입 검증된 필드만 사용한다. unknown 이중 단언을 제거한다.
+- [x] 실제 CLI 테스트: 정상 현재·실패 전년·정상 전월은 previous_month, comparisonPeriod=202606, candidateFailures의 202507 invalid_source를 출력한다. 잘못된 changes는 1, 손상 완료 파일은 2이며 비교 결과를 발행하지 않는다.
+- [x] 값 150/100은 차이50·50%, 150/120은 차이30·25%, 이전0은 비율만 null을 검증한다. 실행: compare-months 및 population-cli 테스트, typecheck.
 
 ## Task 4 — 파일 경계와 실행 측정 정정
 

@@ -144,8 +144,9 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
     if (!currentDong || currentDong.status !== "complete") {
       return base({ dongCode, mode: "unavailable", currentValue: currentDong?.mean ?? null, candidateValue: null, difference: null, percent: null, reason: "current_incomplete", reasons: ["current_incomplete"] }, null, []);
     }
-    const changed = changes.some((change) => change.code === dongCode && change.effectiveDate > monthEnd(previousYear.period) && change.effectiveDate <= monthEnd(current.period));
-    if (changed) return base({ dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] }, null, []);
+    const previousYearStart = `${previousYear.period.slice(0, 4)}-${previousYear.period.slice(4)}-01`;
+    const changed = changes.some((change) => change.code === dongCode && change.effectiveDate > previousYearStart && change.effectiveDate <= monthEnd(current.period));
+    if (changed) return base({ dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] }, null, [{ period: previousYear.period, reasons: ["administrative_area_changed"] }]);
     let candidate = compatible(current, previousYear, dongCode, reasons, methods);
     let mode: DongComparison["mode"] = "same_month_previous_year";
     const candidateFailures: DongComparison["candidateFailures"] = [];

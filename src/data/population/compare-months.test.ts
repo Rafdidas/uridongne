@@ -103,6 +103,28 @@ describe("compareMonths", () => {
     ]);
     expect(result.reason).toBe("administrative_area_changed");
   });
+  it("allows a change on the first day of the prior-year month", () => {
+    const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { code: "00123456", effectiveDate: "2025-07-01", evidenceId: "fixture", kind: "boundary_change" },
+    ]);
+    expect(result.mode).toBe("same_month_previous_year");
+  });
+  it("blocks a change after the prior-year month starts and records the candidate failure", () => {
+    const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { code: "00123456", effectiveDate: "2025-07-15", evidenceId: "fixture", kind: "boundary_change" },
+    ]);
+    expect(result).toMatchObject({ mode: "unavailable", reason: "administrative_area_changed", candidateFailures: [{ period: "202507", reasons: ["administrative_area_changed"] }] });
+  });
+  it("blocks a change on the current month end but ignores the next day", () => {
+    const blocked = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { code: "00123456", effectiveDate: "2026-07-31", evidenceId: "fixture", kind: "boundary_change" },
+    ]);
+    const allowed = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
+      { code: "00123456", effectiveDate: "2026-08-01", evidenceId: "fixture", kind: "boundary_change" },
+    ]);
+    expect(blocked[0].mode).toBe("unavailable");
+    expect(allowed[0].mode).toBe("same_month_previous_year");
+  });
   it("prefers the complete same-month previous-year candidate", () => {
     const [comparison] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"));
     expect(comparison).toMatchObject({ mode: "same_month_previous_year", difference: "50.000000", percent: "50.000000" });
