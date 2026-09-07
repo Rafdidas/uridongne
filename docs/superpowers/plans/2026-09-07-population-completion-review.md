@@ -98,10 +98,10 @@ expect(() => parseMonthResult({})).toThrow();
 
 **Files:** read-rows.ts/test.ts, aggregate-month.ts/test.ts, normalize-population.ts, population-cli.test.ts.
 
-- [ ] 읽기와 해시가 동일한 원본 바이트를 사용하도록 책임을 read-rows의 원본 로딩 경계로 모은다. CLI가 먼저 별도 원본을 해시하고 다시 여는 경로를 제거한다. 기대 SHA-256 검사 뒤 그 버퍼에서 엔트리를 파싱한다.
-- [ ] 슬롯을 동별 Uint8Array(days×24)로 바꾼다. 슬롯 인덱스는 (day-1)×24+hour, 값이 이미 1이면 duplicate_slot이다. 유효 슬롯 수는 별도 정수로 집계한다.
+- [x] 읽기와 해시가 동일한 원본 바이트를 사용하도록 책임을 read-rows의 원본 로딩 경계로 모은다. CLI가 먼저 별도 원본을 해시하고 다시 여는 경로를 제거한다. 기대 SHA-256 검사 뒤 그 버퍼에서 엔트리를 파싱한다.
+- [x] 슬롯을 동별 Uint8Array(days×24)로 바꾼다. 슬롯 인덱스는 (day-1)×24+hour, 값이 이미 1이면 duplicate_slot이다. 유효 슬롯 수는 별도 정수로 집계한다.
 - [ ] 숫자 시간 0/문자열 00 중복, 전체 행 수를 맞춘 중복+누락, 윤년 696슬롯, 입력 역순 결과 일치를 검증한다.
-- [ ] run에 실행 시각·경과시간·최대 RSS와 단위·런타임/처리 버전을 기록한다. 플랫폼 단위를 확인하고 문서에 적는다. 런타임 메타데이터를 결정적 manifest에 넣지 않는다.
+- [x] run에 실행 시각·경과시간·최대 RSS와 단위·런타임/처리 버전을 기록한다. 플랫폼 단위를 확인하고 문서에 적는다. 런타임 메타데이터를 결정적 manifest에 넣지 않는다.
 - [ ] 세 실제 원본을 각각 새 data/work 경로로 두 번 실행한다. 본문/manifest 동일성, 행 수·동 수·오류·비교 사유 건수와 메모리를 기록한다. 과거 숫자는 회귀 비교용이며 결과를 강제로 맞추지 않는다.
 - [ ] 테스트 명령: pnpm test -- src/data/population scripts/data/population-cli.test.ts; pnpm typecheck.
 

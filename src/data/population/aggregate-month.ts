@@ -48,7 +48,8 @@ export async function aggregatePopulation(
   const maxErrors = Math.min(requestedSamples, 20);
   const sums = new Map<string, { count: number; sumMicros: bigint; firstDate: string | null; lastDate: string | null }>();
   const registry = options.registryDongs ? new Map(options.registryDongs.map(dong => [dong.code, dong])) : null;
-  const slots = new Set<string>();
+  const slotMasks = new Map<string, Uint8Array>();
+  let observedSlotCount = 0;
   const errors: string[] = [];
   let invalid = false;
   let rowCount = 0;
@@ -77,9 +78,13 @@ export async function aggregatePopulation(
             throw new PopulationSourceError("outside_dong_validity", "outside dong validity", row.entry, row.line);
           }
         }
-        const slot = `${observation.dongCode}:${observation.date}:${observation.hour}`;
-        if (slots.has(slot)) throw new PopulationSourceError("duplicate_slot", "duplicate slot", row.entry, row.line);
-        slots.add(slot);
+        const day = Number(observation.date.slice(6));
+        const slotIndex = (day - 1) * 24 + observation.hour;
+        const slots = slotMasks.get(observation.dongCode) ?? new Uint8Array(expectedSlotsPerDong);
+        if (slots[slotIndex] === 1) throw new PopulationSourceError("duplicate_slot", "duplicate slot", row.entry, row.line);
+        slots[slotIndex] = 1;
+        slotMasks.set(observation.dongCode, slots);
+        observedSlotCount += 1;
         const current = sums.get(observation.dongCode) ?? { count: 0, sumMicros: BigInt(0), firstDate: null, lastDate: null };
         current.count += 1;
         current.sumMicros += observation.populationMicros;
@@ -125,7 +130,7 @@ export async function aggregatePopulation(
     period,
     status: invalid ? "invalid" : hasIncomplete ? "incomplete" : "complete",
     expectedSlotsPerDong,
-    observedSlots: slots.size,
+    observedSlots: observedSlotCount,
     dongs: invalid ? {} : dongs,
     errors,
     diagnostics: { counts: Object.fromEntries(Object.entries(diagnostics.counts).sort(([a], [b]) => a.localeCompare(b))), samples: diagnostics.samples },

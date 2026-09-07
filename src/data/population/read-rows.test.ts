@@ -6,7 +6,7 @@ import AdmZip from "adm-zip";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { POPULATION_HEADERS } from "./schema";
-import { readPopulationRows } from "./read-rows";
+import { readPopulationRows, readPopulationRowsFromBytes } from "./read-rows";
 import iconv from "iconv-lite";
 
 const extraDirectories: string[] = [];
@@ -38,6 +38,13 @@ function csv(delimiter: string, date: string, headerDelimiter = delimiter): stri
 }
 
 describe("readPopulationRows", () => {
+  it("can parse the exact bytes already used for source hashing", async () => {
+    const bytes = Buffer.from(csv(",", "20260701"), "utf8");
+    const actual = [];
+    for await (const value of readPopulationRowsFromBytes(bytes, "hashed-input.csv")) actual.push(value);
+    expect(actual).toHaveLength(1);
+    expect(actual[0].entry).toBe("hashed-input.csv");
+  });
   it("yields early rows without parsing the entire entry and supports cancellation", async () => {
     const text = POPULATION_HEADERS.join(",") + "\n" + (row(",", "20260701") + "\n").repeat(5000) + "broken,row\n";
     const input = await archive({ "day.csv": Buffer.from(text) });

@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -107,15 +107,13 @@ async function* parseEntry(name: string, text: string, delimiter: Delimiter): As
   }
 }
 
-export async function* readPopulationRows(inputPath: string,
+export async function* readPopulationRowsFromBytes(inputBytes: Buffer, inputPath: string,
   onEntry?: (metadata: EntryMetadata) => void,
   overrides: Partial<PopulationReadLimits> = {},
 ): AsyncGenerator<LocatedRow> {
   const limits = { ...POPULATION_READ_LIMITS, ...overrides };
   if (Object.values(limits).some(limit => !Number.isSafeInteger(limit) || limit <= 0)) throw new Error("invalid population read limits");
   try {
-    if ((await stat(inputPath)).size > limits.archiveBytes) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
-    const inputBytes = await readFile(inputPath);
     if (inputBytes.byteLength > limits.archiveBytes) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
     const zip = path.extname(inputPath).toLowerCase() === ".zip" ? new AdmZip(inputBytes) : null;
     const entries = zip ? zip.getEntries().filter(entry => !entry.isDirectory) :
@@ -143,6 +141,19 @@ export async function* readPopulationRows(inputPath: string,
       onEntry?.({ name: entry.entryName, byteLength: bytes.byteLength, encoding: decoded.encoding,
         delimiter: prepared.delimiter, headerDelimiter: prepared.headerDelimiter, headers: prepared.headers, rowCount });
     }
+  } catch (error) {
+    if (error instanceof PopulationSourceError) throw error;
+    throw new PopulationSourceError("source_read_error", "unable to read population source", inputPath);
+  }
+}
+
+export async function* readPopulationRows(inputPath: string,
+  onEntry?: (metadata: EntryMetadata) => void,
+  overrides: Partial<PopulationReadLimits> = {},
+): AsyncGenerator<LocatedRow> {
+  try {
+    const inputBytes = await readFile(inputPath);
+    yield* readPopulationRowsFromBytes(inputBytes, inputPath, onEntry, overrides);
   } catch (error) {
     if (error instanceof PopulationSourceError) throw error;
     throw new PopulationSourceError("source_read_error", "unable to read population source", inputPath);

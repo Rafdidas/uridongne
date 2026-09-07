@@ -21,7 +21,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | Task 3의 날짜·근거 변경 이력 파서, 후보별 실패 정보, 비교 결과 외부 필드와 실패 후보 CLI 읽기 연결 완료. 검증 후 로컬 체크포인트 커밋 대기 |
+| 작업 단계 | Task 4의 동일 원본 바이트 해시·파싱, Uint8Array 슬롯, 실행 메타데이터 구현 및 검증 완료. 실원본 이중 실행과 공식 근거 확인(Task 5) 대기 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
@@ -129,7 +129,7 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 
 ## 다음 작업과 연결 시점
 
-현재 재개 지점(2026-09-07): Task 1의 `MonthResult` 런타임 검증·외부 monthly JSON 변환, Task 2의 `readCandidateOutcome`·실패 진단 일치 검사·내용 manifest/실행 해시 분리에 이어 Task 3을 진행했다. `parseAreaChanges`가 code/effectiveDate/evidenceId/kind를 엄격히 검증하고, 비교 결과에 comparisonPeriod/fallbackReason/candidateFailures/codeMatchBasis/currentMean/previousMean/percentChange를 추가했다. compare CLI도 후보별 명시적 invalid 결과를 받아 전월 fallback으로 전달한다. 관련 테스트는 통과했으며 전체 검증을 다시 마친 뒤 로컬 커밋한다. push는 사용자 명시 요청 전에는 하지 않는다. D1·UI 연결과 외부 작업은 이번 잔여 구현 범위에 포함하지 않는다.
+현재 재개 지점(2026-09-07): Task 1~3에 이어 Task 4를 구현했다. 정규화 CLI는 한 번 읽은 Buffer를 SHA-256 해시와 `readPopulationRowsFromBytes` 파싱에 함께 사용하고, 집계 슬롯은 동별 `Uint8Array(days×24)`로 관리한다. run 메타데이터에 `startedAt`, `elapsedMs`, `maxRssBytes`, `runtime`, `processingVersion`을 기록한다. 전체 테스트 20개 파일·123개 테스트, lint, typecheck가 통과했다. 다음은 실원본을 새 work 경로에서 반복 실행하는 재현성 검증과 Task 5 공식 근거 확인이다. push는 사용자 명시 요청 전에는 하지 않는다. D1·UI 연결과 외부 작업은 이번 잔여 구현 범위에 포함하지 않는다.
 
 1. 초기 환경 설계서와 구현 계획은 작성되어 있다. 위 링크의 문서를 읽는다. 원본에서 빠진 색상·글꼴·줄 높이는 설계서의 교체 가능한 기본안이며, 최종 브랜드 확정으로 해석하지 않는다.
 2. 현재가 코드 작성 전 모델 전환 시점이다. 사용자에게 “설계에서 구현으로 전환할 시점입니다. 구현용 모델로 변경한 뒤 프로젝트 생성을 시작합니다.”라고 안내했다. 사용자 검토·모델 전환 후 구현 계획 Task 1부터 실행한다. 전체 제품의 상세 설계가 끝났다는 뜻으로 과장하지 않는다.
@@ -197,6 +197,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 변경 경계를 전년 후보 월말과 현재 월말 사이의 실제 날짜로 판정하도록 바꾸고, 비교 결과에 후보 기간·fallback 사유·후보별 실패·동일 코드 근거와 외부 필드 이름을 추가했다.
 - 비교 CLI가 `readCandidateOutcome`의 명시적 invalid 후보를 내부 invalid 집계로 변환해 전월 후보 평가까지 도달하도록 연결했다. 빈 디렉터리·손상 산출물은 계속 실행 오류로 남긴다.
 - 단위 테스트 122개까지 통과했고 typecheck/lint도 통과했다. 이번 단계는 아직 커밋·push하지 않았다.
+
+### 2026-09-07 — 동일 바이트 입력·슬롯 메모리·실행 메타데이터
+
+- `readPopulationRowsFromBytes`를 추가해 CLI가 동일한 입력 Buffer를 해시하고 파싱하도록 바꿨다. 파일을 해시한 뒤 다시 여는 경로를 제거했고, 해당 경계를 테스트했다.
+- 집계 슬롯을 동별 `Uint8Array(days×24)`로 전환했다. 슬롯 인덱스는 `(day-1)×24+hour`이며 별도 정수로 유효 슬롯 수를 센다. 기존 중복·누락 판정 테스트가 유지된다.
+- 정규화 실행 기록에 ISO 시작 시각, 경과시간(ms), RSS(bytes), Node 런타임과 처리 버전을 추가했다. 실행 메타데이터는 결정적 manifest에서 제외된다.
+- 전체 테스트 20개 파일·123개 통과, `pnpm lint`, `pnpm typecheck`, `git diff --check` 통과. 이번 단계는 아직 커밋·push하지 않았다.
 
 ### 2026-09-07 — 모델 전환 합의 위반 지적 및 구현 중단
 
