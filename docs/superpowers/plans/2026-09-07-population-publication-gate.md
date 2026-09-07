@@ -103,12 +103,12 @@ const crosses = change.effectiveDate > start && change.effectiveDate <= currentM
 
 **Files:** 문서 docs/data/2026-09-07-population-normalization.md, handoff.md, 본 계획. 실행 결과는 Git 제외 data/work 하위에만 생성한다.
 
-- [ ] 202507/202606/202607의 기존 raw ZIP과 source-contract를 확인하고 새 고유 work 경로를 정한다. 각 원본을 두 번 정규화한다.
-- [ ] 파일 SHA-256뿐 아니라 새 reader로 두 성공 산출물을 검증한다. monthly와 manifest 동일성, sumMicros·관측/누락 수·평균·날짜가 기존 task5 결과와 같은지 비교한다.
-- [ ] 새 비교 CLI를 두 실행 세트에 적용하고 출력 본문 동일성과 후보별 사유를 확인한다. 전체 unavailable이면 코드 2가 예상되지만 결과를 읽어 원천 손상과 구분한다.
-- [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 실행한다. 새 코드 수정이 없으면 같은 검사를 불필요하게 반복하지 않는다.
-- [ ] `git check-ignore`로 raw/work 산출물 제외를 실제 확인한다. 진단 보고에 실행 명령·기간·해시·건수·실패 이유·측정 구간을 남긴다. 공식 근거 미확인은 유지한다.
-- [ ] 완료한 항목만 체크하고 handoff 현재 상태와 이력을 함께 갱신한다. 검증된 파일만 로컬 커밋하며 push하지 않는다.
+- [x] 202507/202606/202607의 기존 raw ZIP과 source-contract를 확인하고 새 고유 work 경로를 정한다. 각 원본을 두 번 정규화한다.
+- [x] 파일 SHA-256뿐 아니라 새 reader로 두 성공 산출물을 검증한다. monthly와 manifest 동일성, sumMicros·관측/누락 수·평균·날짜가 기존 task5 결과와 같은지 비교한다.
+- [x] 새 비교 CLI를 두 실행 세트에 적용하고 출력 본문 동일성과 후보별 사유를 확인한다. 전체 unavailable이면 코드 2가 예상되지만 결과를 읽어 원천 손상과 구분한다.
+- [x] `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 실행한다. 새 코드 수정이 없으면 같은 검사를 불필요하게 반복하지 않는다.
+- [x] `git check-ignore`로 raw/work 산출물 제외를 실제 확인한다. 진단 보고에 실행 명령·기간·해시·건수·실패 이유·측정 구간을 남긴다. 공식 근거 미확인은 유지한다.
+- [x] 완료한 항목만 체크하고 handoff 현재 상태와 이력을 함께 갱신한다. 검증된 파일만 로컬 커밋하며 push하지 않는다.
 
 ## 후속 단계: D1 → API → 화면
 

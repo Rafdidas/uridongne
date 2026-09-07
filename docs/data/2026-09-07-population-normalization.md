@@ -65,6 +65,22 @@ CSV 정보의 line은 레코드의 물리적 종료 행이다. 헤더와 데이�
 
 세 실원본을 각각 새 `data/work/population-YYYYMM-task5-a`와 `...-task5-b` 경로에 두 번 처리했다. 동일 입력의 `monthly.json`·`manifest.json`은 모두 바이트 단위로 같았고, 실행 시각·경과시간·RSS가 들어간 `run.json`만 실행별로 달라질 수 있다.
 
+## 새 형식 인수 검증 (2026-09-08)
+
+`formatVersion=2`와 `--work-root data/work`를 적용해 기존 raw ZIP과 계약을 다음 새 경로에서 각각 두 번 재처리했다. 기존 `task5-a/b` 결과는 덮어쓰지 않았다.
+
+| 기간 | reader 상태 | 동 수 | 관측 슬롯 | 누락 슬롯 | 오류 counts | monthly SHA-256 (a=b) | manifest SHA-256 (a=b) |
+| --- | --- | ---: | ---: | ---: | --- | --- | --- |
+| 202507 | complete | 426 | 316,944 | 0 | `{}` | `355228c90807b38887b5333b81da4734daa1131999ac807a15b3ed779e018d44` | `69fa3247ea567bf493afeb9880f7a3da0466d8e7f3294c81e56f53a23785a728` |
+| 202606 | complete | 427 | 307,440 | 0 | `{}` | `19d525381d3cb8cdda49b1f67b73e10ec75897398a8301043e0d7568a75be2ff` | `0d0943a667d3fd0143ae99fd614b6f7872531b1ed9e0971e8433cba82a87ffe9` |
+| 202607 | complete | 427 | 317,688 | 0 | `{}` | `e74c2caf4e56d2a49e0a90af303d2640fee2b9cd236a116618c0f966fc027e1` | `660a48a683aa079632750f4d3d064aba4cba6b26c0055267b0842801b7288f4b` |
+
+각 a/b 산출물은 `readMonthlyOutput`으로 다시 읽어 검증했다. 비교 CLI도 `population-comparison-task5-v2-a/b`에서 실행했고 두 `comparison.json`은 SHA-256 `c2bfcaac2af717ee3f525f467f87c01d59a34638aecc341f52b9d552ef039664`, 두 manifest는 `6cd133586fcc71e8ba0b01390c318209f393e54c1ab195c2341f1d0ff493f82a`로 동일했다. 비교는 방법 근거가 `unverified`인 현재 계약을 보수적으로 반영해 동별 `unavailable`을 기록했으며, 사유 집계는 `method_unverified` 425건, `administrative_area_unverified` 2건, `current_incomplete` 1건이다. 비교 CLI의 전체 unavailable 종료 상태는 예상된 코드 2이며, 결과 파일은 정상적으로 생성되어 원천 손상과 구분된다.
+
+세 기간의 새 monthly 본문 SHA-256은 기존 `task5-a` monthly SHA-256과도 각각 일치했다.
+
+실행 메타데이터에는 처리별 `startedAt`, `finishedAt`, `elapsedMs`, `rssAtEndBytes`가 기록됐다. `data/raw/`와 `data/work/`는 `.gitignore`에 의해 제외됨을 `git check-ignore`로 확인했다. 공식 산출 방법·행정동 registry 근거는 확인하지 않았으므로 `method=unverified`, `registry=null`을 유지한다.
+
 | 기간 | 상태 | 동 수 | 오류 counts | monthly/manifest 반복 일치 | source SHA-256 |
 | --- | --- | ---: | --- | --- | --- |
 | 202507 | valid | 426 | `{}` | yes / yes | `30221cca72f9bcdc55386f0d117c6104e19d257fbed8a3f5760a31aadf0cb146` |
