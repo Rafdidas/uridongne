@@ -21,7 +21,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 구현용 모델 전환 확인 후 Task 0 완료, Task 1 외부 MonthResult 계약·Task 2 산출물 성공/실패 읽기·결정적 manifest 구현 및 검증 완료. Task 3 비교 근거 계약 진행 대기 |
+| 작업 단계 | Task 3의 날짜·근거 변경 이력 파서, 후보별 실패 정보, 비교 결과 외부 필드와 실패 후보 CLI 읽기 연결 완료. 검증 후 로컬 체크포인트 커밋 대기 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
@@ -36,7 +36,7 @@
 ## 사용자와 합의한 작업 방식
 
 1. 설계와 코드 구현은 서로 다른 AI 모델을 사용한다. 구현으로 전환하기 전에 명확히 알리고, 사용자가 구현용 모델로 전환한 후 진행한다. 현재 모델이 자동으로 바뀌었다고 가정하지 않는다.
-2. GitHub 외부 작업은 사용자 진행 요청에 따른다. 2026-09-07 커밋·푸시 요청으로 기존 작업이 `716e6d7`까지 origin/main에 반영됐다.
+2. GitHub 외부 작업은 사용자 진행 요청에 따른다. 커밋은 로컬 체크포인트로 남길 수 있지만, push는 사용자가 명시적으로 요청한 경우에만 수행한다. 2026-09-07 요청으로 보완 브랜치 `codex/population-validation-fixes`를 원격에 푸시했다.
 3. Cloudflare 연결도 사용자가 진행하자고 할 때 수행한다. 적절한 연결 시점은 먼저 안내할 수 있다.
 4. 이 handoff.md는 작업 중간에도 갱신한다. 환경 변경, 의미 있는 기능 완료, 설계 결정, 검증 결과, 오류·중단, 모델 전환 때 기록한다.
 5. GitHub 연결 후 README.md도 실제 구현 상태에 맞춰 계속 작성·갱신한다. 자동 생성 README가 있으면 초기 연결 시 프로젝트 내용으로 정리한다.
@@ -129,7 +129,7 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 
 ## 다음 작업과 연결 시점
 
-현재 재개 지점(2026-09-07): 구현용 모델 전환을 확인하고 Task 0의 기존 미커밋 범위 검토를 완료했다. Task 1의 `MonthResult` 런타임 검증·외부 monthly JSON 변환과 Task 2의 `readCandidateOutcome`, 실패 진단 일치 검사, 내용 manifest/실행 해시 분리를 구현했다. `pnpm test` 20개 파일·121개 테스트, `pnpm lint`, `pnpm typecheck`가 통과했다. 로컬 브랜치 `codex/population-validation-fixes`의 마지막 커밋은 3f5c041이며 기존 오류/스트림 보완과 이번 구현은 아직 미커밋이다. 다음은 Task 3의 날짜·근거 기반 변경 이력과 후보별 비교 결과다. D1·UI 연결과 외부 작업은 이번 잔여 구현 범위에 포함하지 않는다.
+현재 재개 지점(2026-09-07): Task 1의 `MonthResult` 런타임 검증·외부 monthly JSON 변환, Task 2의 `readCandidateOutcome`·실패 진단 일치 검사·내용 manifest/실행 해시 분리에 이어 Task 3을 진행했다. `parseAreaChanges`가 code/effectiveDate/evidenceId/kind를 엄격히 검증하고, 비교 결과에 comparisonPeriod/fallbackReason/candidateFailures/codeMatchBasis/currentMean/previousMean/percentChange를 추가했다. compare CLI도 후보별 명시적 invalid 결과를 받아 전월 fallback으로 전달한다. 관련 테스트는 통과했으며 전체 검증을 다시 마친 뒤 로컬 커밋한다. push는 사용자 명시 요청 전에는 하지 않는다. D1·UI 연결과 외부 작업은 이번 잔여 구현 범위에 포함하지 않는다.
 
 1. 초기 환경 설계서와 구현 계획은 작성되어 있다. 위 링크의 문서를 읽는다. 원본에서 빠진 색상·글꼴·줄 높이는 설계서의 교체 가능한 기본안이며, 최종 브랜드 확정으로 해석하지 않는다.
 2. 현재가 코드 작성 전 모델 전환 시점이다. 사용자에게 “설계에서 구현으로 전환할 시점입니다. 구현용 모델로 변경한 뒤 프로젝트 생성을 시작합니다.”라고 안내했다. 사용자 검토·모델 전환 후 구현 계획 Task 1부터 실행한다. 전체 제품의 상세 설계가 끝났다는 뜻으로 과장하지 않는다.
@@ -186,6 +186,17 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - `readCandidateOutcome`을 추가해 성공 산출물과 명시적 invalid 산출물의 읽기 경로를 분리했다. `complete.json` 누락만으로 실패를 추정하지 않고 `run.json`/`errors.json`의 kind·status·period·진단을 확인한다.
 - monthly/comparison manifest에는 내용 파일 해시만 기록하고, 실행 시각 등 비결정적 `run.json` 해시는 `complete.json`에서 별도로 검증한다. 동일 monthly를 다른 실행 메타데이터로 두 번 작성해 manifest가 동일함을 테스트했다.
 - 전체 테스트 20개 파일·121개 통과, `pnpm lint`, `pnpm typecheck` 통과를 확인했다. CLI의 실패 후보를 실제 비교 fallback에 연결하는 검증은 Task 3/후속 Task 2 항목으로 남아 있다.
+
+### 2026-09-07 — push 요청 정책 확인
+
+- 사용자가 push는 명시적으로 요청할 때만 수행하도록 재확인했다. 다음 작업에서는 로컬 구현·검증을 먼저 진행하고 push하지 않는다.
+
+### 2026-09-07 — 날짜·근거 기반 비교 계약
+
+- `AreaChange`를 `code`, 실제 `effectiveDate`, `evidenceId`, `kind` 계약으로 전환하고 `parseAreaChanges`에서 알 수 없는 필드·잘못된 날짜·근거·종류를 거부한다.
+- 변경 경계를 전년 후보 월말과 현재 월말 사이의 실제 날짜로 판정하도록 바꾸고, 비교 결과에 후보 기간·fallback 사유·후보별 실패·동일 코드 근거와 외부 필드 이름을 추가했다.
+- 비교 CLI가 `readCandidateOutcome`의 명시적 invalid 후보를 내부 invalid 집계로 변환해 전월 후보 평가까지 도달하도록 연결했다. 빈 디렉터리·손상 산출물은 계속 실행 오류로 남긴다.
+- 단위 테스트 122개까지 통과했고 typecheck/lint도 통과했다. 이번 단계는 아직 커밋·push하지 않았다.
 
 ### 2026-09-07 — 모델 전환 합의 위반 지적 및 구현 중단
 

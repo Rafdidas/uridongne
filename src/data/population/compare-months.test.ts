@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { compareMonths } from "./compare-months";
+import { compareMonths, parseAreaChanges } from "./compare-months";
 import type { MonthAggregation } from "./aggregate-month";
 
 const month = (period: string, mean: string, status: "complete" | "incomplete" = "complete", methodStatus: "verified" | "unverified" = "verified"): MonthAggregation => ({
@@ -30,6 +30,13 @@ const month = (period: string, mean: string, status: "complete" | "incomplete" =
 });
 
 describe("compareMonths", () => {
+  it("parses date-based area changes with evidence", () => {
+    expect(parseAreaChanges([{ code: "00123456", effectiveDate: "2026-01-15", evidenceId: "official-change-1", kind: "boundary_change" }])).toEqual([
+      { code: "00123456", effectiveDate: "2026-01-15", evidenceId: "official-change-1", kind: "boundary_change" },
+    ]);
+    expect(() => parseAreaChanges([{ code: "00123456", effectiveDate: "2026-02-30", evidenceId: "x", kind: "created" }])).toThrow();
+    expect(() => parseAreaChanges([{ code: "00123456", effectiveDate: "2026-01-15", evidenceId: "x", kind: "unknown" }])).toThrow();
+  });
   it("does not trust legacy verified flags without the evidence contract", () => {
     const current = month("202607", "150.000000");
     delete current.input;
@@ -78,7 +85,7 @@ describe("compareMonths", () => {
 
   it("ignores boundary changes before the comparison period", () => {
     const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
-      { dongCode: "00123456", effectivePeriod: "202401" },
+      { code: "00123456", effectiveDate: "2024-01-15", evidenceId: "fixture", kind: "boundary_change" },
     ]);
     expect(result.mode).toBe("same_month_previous_year");
   });
@@ -92,7 +99,7 @@ describe("compareMonths", () => {
 
   it("blocks fallback when the year candidate crosses a boundary change", () => {
     const [result] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [
-      { dongCode: "00123456", effectivePeriod: "202601" },
+      { code: "00123456", effectiveDate: "2026-01-15", evidenceId: "fixture", kind: "boundary_change" },
     ]);
     expect(result.reason).toBe("administrative_area_changed");
   });
@@ -105,6 +112,8 @@ describe("compareMonths", () => {
     const [comparison] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000", "incomplete"), month("202606", "120.000000"));
     expect(comparison).toMatchObject({ mode: "previous_month", difference: "30.000000", percent: "25.000000" });
     expect(comparison.reasons).toContain("candidate_incomplete");
+    expect(comparison).toMatchObject({ comparisonMode: "previous_month", comparisonPeriod: "202606", fallbackReason: "previous_year_unavailable", codeMatchBasis: "same_code" });
+    expect(comparison.candidateFailures).toEqual([{ period: "202507", reasons: ["candidate_incomplete"] }]);
   });
 
   it("does not substitute another period when a code is absent", () => {

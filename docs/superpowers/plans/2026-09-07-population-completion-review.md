@@ -86,10 +86,10 @@ expect(() => parseMonthResult({})).toThrow();
 
 **Interfaces:** parseAreaChanges(value: unknown): AreaChange[]; AreaChange와 DongComparison은 기존 계획의 필드명을 따른다. candidateFailures는 각 period와 reasons를 묶는다.
 
-- [ ] code(8자리), effectiveDate(실제 YYYY-MM-DD), evidenceId(공백 아닌 문자열), kind(boundary_change/retired/created)를 검사한다. 빈 배열은 미확인이지 변경 없음의 증명이 아니다.
-- [ ] 월 단위 effectivePeriod를 실제 날짜 계약으로 전환한다. 비교 후보 월중 변경도 격리한다. 후보 월 첫날 적용된 변경과 중간 적용된 변경을 구분하는 날짜 테스트를 만든다. 정상 전년 후보의 경계 변경/코드 부재를 이유로 전월 자동 대체하지 않는 기존 정책은 유지한다.
+- [x] code(8자리), effectiveDate(실제 YYYY-MM-DD), evidenceId(공백 아닌 문자열), kind(boundary_change/retired/created)를 검사한다. 빈 배열은 미확인이지 변경 없음의 증명이 아니다.
+- [x] 월 단위 effectivePeriod를 실제 날짜 계약으로 전환한다. 비교 후보 월중 변경도 격리한다. 후보 월 첫날 적용된 변경과 중간 적용된 변경을 구분하는 날짜 테스트를 만든다. 정상 전년 후보의 경계 변경/코드 부재를 이유로 전월 자동 대체하지 않는 기존 정책은 유지한다.
 - [ ] 현재 유효성 → 코드/공식 변경 → 후보 스키마/방법/완결성 순서와 허용된 전월 대체를 검증한다. 실패 원천의 빈 코드 집합을 공식 코드 부재로 해석하지 않는다.
-- [ ] comparisonMode/Period, fallbackReason, candidateFailures, codeMatchBasis, currentMean/previousMean, difference, percentChange, percentUnavailableReason을 출력한다. 같은 실패명이 두 후보에 있어도 각각의 기간에 남긴다.
+- [x] comparisonMode/Period, fallbackReason, candidateFailures, codeMatchBasis, currentMean/previousMean, difference, percentChange, percentUnavailableReason을 출력한다. 같은 실패명이 두 후보에 있어도 각각의 기간에 남긴다.
 - [ ] 손계산 사례: 150 대 100은 차이 50/50%; 전월 120 대체는 30/25%; 이전 0은 차이 유지/비율 null. 음수 반올림·음의 0 제거와 반올림된 평균이 아닌 원 합계/관측 수 계산도 검사한다.
 - [ ] 잘못된 flags/changes/후보 기간은 코드 1, 원천 실패 또는 전부 unavailable은 2, 일부 비교 가능하면 0이다. 손상 산출물은 비교 불가 통계로 숨기지 말고 명시적 실행 실패로 보고한다.
 - [ ] 테스트 명령: pnpm test -- src/data/population/compare-months.test.ts src/data/population/area-change.test.ts scripts/data/population-cli.test.ts; pnpm typecheck.

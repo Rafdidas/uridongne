@@ -1,9 +1,11 @@
 import type { DongAggregation, MonthAggregation } from "./aggregate-month";
-import { parseMonthInput, POPULATION_SCHEMA_VERSION } from "./contract";
+import { calendarDate, parseMonthInput, POPULATION_SCHEMA_VERSION } from "./contract";
 
 export interface AreaChange {
-  dongCode: string;
-  effectivePeriod: string;
+  code: string;
+  effectiveDate: string;
+  evidenceId: string;
+  kind: "boundary_change" | "retired" | "created";
 }
 
 export interface DongComparison {
@@ -15,6 +17,29 @@ export interface DongComparison {
   percent: string | null;
   reason: string | null;
   reasons: string[];
+  comparisonMode: "same_month_previous_year" | "previous_month" | "unavailable";
+  comparisonPeriod: string | null;
+  fallbackReason: string | null;
+  candidateFailures: Array<{ period: string; reasons: string[] }>;
+  codeMatchBasis: "same_code" | "unavailable";
+  currentMean: string | null;
+  previousMean: string | null;
+  percentChange: string | null;
+  percentUnavailableReason: string | null;
+}
+
+export function parseAreaChanges(value: unknown): AreaChange[] {
+  if (!Array.isArray(value)) throw new Error("area changes must be an array");
+  return value.map(item => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error("invalid area change");
+    const record = item as Record<string, unknown>;
+    const fields = ["code", "effectiveDate", "evidenceId", "kind"];
+    if (Object.keys(record).some(key => !fields.includes(key)) || fields.some(field => !Object.hasOwn(record, field))) throw new Error("invalid area change");
+    if (typeof record.code !== "string" || !/^\d{8}$/.test(record.code)) throw new Error("invalid area change code");
+    if (typeof record.evidenceId !== "string" || !record.evidenceId.trim() || record.evidenceId !== record.evidenceId.trim()) throw new Error("invalid area change evidence");
+    if (record.kind !== "boundary_change" && record.kind !== "retired" && record.kind !== "created") throw new Error("invalid area change kind");
+    return { code: record.code, effectiveDate: calendarDate(record.effectiveDate, "area change effectiveDate"), evidenceId: record.evidenceId, kind: record.kind };
+  });
 }
 
 function expectedPeriods(period: string): { previousYear: string; previousMonth: string } {
@@ -27,6 +52,13 @@ function expectedPeriods(period: string): { previousYear: string; previousMonth:
     previousYear: `${year - 1}${String(month).padStart(2, "0")}`,
     previousMonth: `${previousMonthDate.getUTCFullYear()}${String(previousMonthDate.getUTCMonth() + 1).padStart(2, "0")}`,
   };
+}
+
+function monthEnd(period: string): string {
+  const year = Number(period.slice(0, 4));
+  const month = Number(period.slice(4));
+  const day = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function formatRational(numerator: bigint, denominator: bigint): string {
@@ -100,28 +132,38 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
   return [...codes].sort().map((dongCode) => {
     const currentDong = current.dongs[dongCode];
     const reasons: string[] = [];
+    const base = (values: Omit<DongComparison, "comparisonMode" | "comparisonPeriod" | "fallbackReason" | "candidateFailures" | "codeMatchBasis" | "currentMean" | "previousMean" | "percentChange" | "percentUnavailableReason">, comparisonPeriod: string | null, candidateFailures: DongComparison["candidateFailures"]): DongComparison => ({
+      ...values, comparisonMode: values.mode, comparisonPeriod, fallbackReason: values.mode === "previous_month" ? "previous_year_unavailable" : values.reason,
+      candidateFailures, codeMatchBasis: values.mode === "unavailable" ? "unavailable" : "same_code", currentMean: values.currentValue,
+      previousMean: values.candidateValue, percentChange: values.percent,
+      percentUnavailableReason: values.percent === null && values.mode !== "unavailable" ? (reasons.includes("previous_value_zero") ? "previous_value_zero" : null) : null,
+    });
     if (current.status === "invalid") {
-      return { dongCode, mode: "unavailable", currentValue: null, candidateValue: null, difference: null, percent: null, reason: "invalid_source", reasons: ["invalid_source"] };
+      return base({ dongCode, mode: "unavailable", currentValue: null, candidateValue: null, difference: null, percent: null, reason: "invalid_source", reasons: ["invalid_source"] }, null, []);
     }
     if (!currentDong || currentDong.status !== "complete") {
-      return { dongCode, mode: "unavailable", currentValue: currentDong?.mean ?? null, candidateValue: null, difference: null, percent: null, reason: "current_incomplete", reasons: ["current_incomplete"] };
+      return base({ dongCode, mode: "unavailable", currentValue: currentDong?.mean ?? null, candidateValue: null, difference: null, percent: null, reason: "current_incomplete", reasons: ["current_incomplete"] }, null, []);
     }
-    const changed = changes.some((change) => change.dongCode === dongCode && change.effectivePeriod > previousYear.period && change.effectivePeriod <= current.period);
-    if (changed) return { dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] };
+    const changed = changes.some((change) => change.code === dongCode && change.effectiveDate > monthEnd(previousYear.period) && change.effectiveDate <= monthEnd(current.period));
+    if (changed) return base({ dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] }, null, []);
     let candidate = compatible(current, previousYear, dongCode, reasons, methods);
     let mode: DongComparison["mode"] = "same_month_previous_year";
+    const candidateFailures: DongComparison["candidateFailures"] = [];
+    if (!candidate) candidateFailures.push({ period: previousYear.period, reasons: [...reasons] });
     if (!candidate && !reasons.includes("administrative_area_unverified")) {
+      const previousReasons = reasons.length;
       candidate = compatible(current, previousMonth, dongCode, reasons, methods);
+      if (!candidate) candidateFailures.push({ period: previousMonth.period, reasons: reasons.slice(previousReasons) });
       if (candidate) {
         mode = "previous_month";
       }
     }
     if (!candidate) {
       const reason = reasons[0] ?? "unavailable";
-      return { dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason, reasons };
+      return base({ dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason, reasons }, null, candidateFailures);
     }
     const values = difference(currentDong, candidate);
     if (candidate.sumMicros === BigInt(0)) reasons.push("previous_value_zero");
-    return { dongCode, mode, currentValue: currentDong.mean, candidateValue: candidate.mean, difference: values.value, percent: values.percent, reason: null, reasons };
+    return base({ dongCode, mode, currentValue: currentDong.mean, candidateValue: candidate.mean, difference: values.value, percent: values.percent, reason: null, reasons }, mode === "same_month_previous_year" ? previousYear.period : previousMonth.period, candidateFailures);
   });
 }
