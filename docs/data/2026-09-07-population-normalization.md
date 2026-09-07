@@ -59,4 +59,18 @@ pnpm data:compare-population -- --current-dir data/work/population-202607-run1 -
 
 비교 산출물은 `data/work/population-comparison-stream4`에 생성했고 전체 unavailable에 맞춰 CLI 코드 2를 반환했다. 이후 구현 모델에서 외부 `MonthResult` JSON 경계·실패 후보 읽기·내용 manifest와 실행 해시 분리를 추가했으며, 현재 로컬 검증은 테스트 121개·lint·typecheck를 통과했다. 실제 원본 재처리는 아직 다시 실행하지 않았다.
 
-CSV 정보의 line은 레코드의 물리적 종료 행이다. 헤더와 데이터 구분자는 엔트리 메타데이터에 별도로 남긴다. ZIP 해제 전 선언 크기 검증과 해제 후 실제 크기 검증을 수행하며, 엔트리 해독 문자열/ZIP 버퍼와 집계 상태의 최대 메모리 측정은 후속 작업이다.
+CSV 정보의 line은 레코드의 물리적 종료 행이다. 헤더와 데이터 구분자는 엔트리 메타데이터에 별도로 남긴다. ZIP 해제 전 선언 크기 검증과 해제 후 실제 크기 검증을 수행한다.
+
+## Task 5 재현성·공식 근거 확인 (2026-09-07)
+
+세 실원본을 각각 새 `data/work/population-YYYYMM-task5-a`와 `...-task5-b` 경로에 두 번 처리했다. 동일 입력의 `monthly.json`·`manifest.json`은 모두 바이트 단위로 같았고, 실행 시각·경과시간·RSS가 들어간 `run.json`만 실행별로 달라질 수 있다.
+
+| 기간 | 상태 | 동 수 | 오류 counts | monthly/manifest 반복 일치 | source SHA-256 |
+| --- | --- | ---: | --- | --- | --- |
+| 202507 | valid | 426 | `{}` | yes / yes | `30221cca72f9bcdc55386f0d117c6104e19d257fbed8a3f5760a31aadf0cb146` |
+| 202606 | valid | 427 | `{}` | yes / yes | `de7948a1002cfa135c8bb66c4ee1ba1c45963ebfc97dd650a94e3cb7a660f872` |
+| 202607 | valid | 427 | `{}` | yes / yes | `738e30e09a9fb1420f66d28e2cddb2b37df238e7c376cff9c6fb2e63b12cd4b2` |
+
+서울 열린데이터광장의 [OA-23016 공식 페이지](https://data.seoul.go.kr/dataList/OA-23016/S/1/datasetView.do)를 2026-09-07 읽기 전용으로 확인했다. 페이지는 `[내국인] 행정동별 서울 생활인구(250m)` 데이터셋과 202507·202606·202607 파일 목록, 제공기관 서울특별시 및 일 1회 갱신 정보를 확인하게 해준다. 그러나 현재 원본의 산출 방법 버전·필드 버전과 행정동 코드 변경의 유효일·근거 이력을 함께 제공하지 않으므로, 동일 OA ID·헤더만으로 `method.verified` 또는 registry를 승인하지 않았다. 세 계약은 계속 `method.unverified`, `registry: null`, `coverageStatus: observed_only`로 둔다.
+
+Task 5의 남은 의미적 확인은 공식 행정동 목록·변경 이력의 별도 근거가 확보될 때 수행한다. 현재 결과를 전년 비교의 공식 경계 변경 증거로 해석하지 않는다.

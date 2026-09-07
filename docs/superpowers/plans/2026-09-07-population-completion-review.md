@@ -109,10 +109,10 @@ expect(() => parseMonthResult({})).toThrow();
 
 **Files:** docs/references/에 필요한 원본 보존; data/source-contracts, docs/data/2026-09-07-population-normalization.md, README.md, handoff.md.
 
-- [ ] 공식 자료를 읽기 전용으로 확인하고 URL·확인일·해당 기간·검토 결론을 기록한다. 실제 동일 방법/버전 확인이 없으면 method unverified를 유지한다. 동일 헤더나 동일 OA ID만으로 verified로 올리지 않는다.
-- [ ] 공식 행정동 목록과 변경 이력이 확보되지 않으면 registry=null/observed_only를 유지한다. 변경 코드의 이름 매칭이나 환산은 범위 밖이다.
-- [ ] 검증된 공개 계약·미확인 근거·새 CLI 예시·실행 결과를 README와 handoff에 반영한다.
-- [ ] pnpm test, pnpm lint, pnpm typecheck, pnpm build, git diff --check를 실행하고 raw/work 제외를 확인한다.
+- [x] 공식 자료를 읽기 전용으로 확인하고 URL·확인일·해당 기간·검토 결론을 기록한다. 실제 동일 방법/버전 확인이 없으면 method unverified를 유지한다. 동일 헤더나 동일 OA ID만으로 verified로 올리지 않는다.
+- [x] 공식 행정동 목록과 변경 이력이 확보되지 않으면 registry=null/observed_only를 유지한다. 변경 코드의 이름 매칭이나 환산은 범위 밖이다.
+- [x] 검증된 공개 계약·미확인 근거·새 CLI 예시·실행 결과를 README와 handoff에 반영한다.
+- [x] pnpm test, pnpm lint, pnpm typecheck, pnpm build, git diff --check를 실행하고 raw/work 제외를 확인한다.
 - [ ] 이 계획의 항목별 완료 근거를 기록한다. 구현용 모델에서 검증한 로컬 파일만 커밋한다. UI/D1 설계 전환 시 사용자에게 모델 전환 시점을 다시 알린다.
 
 ## 설계 검토 결론

@@ -52,6 +52,7 @@ pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir 
 출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월은 승인된 `MonthResult` JSON 계약으로 기록·검증하며, manifest에는 내용 파일 해시를 두고 실행 메타데이터(`run.json`) 해시는 `complete.json`에서 별도로 검사합니다. 비교 후보는 성공 산출물과 명시적 실패 진단을 구분해 읽습니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
 
 정규화 계약은 `data/source-contracts/population-202607.json`을 예로 사용합니다. 필수 항목은 `period`, 서울 기준 달력 날짜 `asOfDate`, `sourceId: OA-23016`, `schemaVersion: oa23016-hourly-v1`, `method`, `registry`, 원본 SHA-256인 `expectedSha256`입니다. 해당 월이 끝난 다음 달 1일부터 처리할 수 있습니다. 누락·알 수 없는 필드·잘못된 설정은 원본을 읽기 전에 종료 코드 1로 거부하고, 원본 해시/관측 검증 실패는 2로 처리합니다.
+현재 OA-23016의 공식 페이지는 데이터셋과 월별 파일 목록의 출처 확인에 사용하지만, 산출 방법 버전과 행정동 변경 이력이 확인되기 전까지 계약의 `method`는 `unverified`, `registry`는 `null`로 유지합니다. 반복 실행 결과와 보류 근거는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)에 기록합니다.
 
 방법 미확인은 `{ "status": "unverified", "version": null, "evidenceIds": [] }`로 기록합니다. `verified`에는 버전과 비어 있지 않은 근거 ID 목록이 필요하지만, 형식 검사는 그 자료 내용의 사실 확인을 대신하지 않습니다. 근거 계약이 없는 이전 결과의 `methodStatus: verified`만으로 비교를 허용하지 않습니다.
 
