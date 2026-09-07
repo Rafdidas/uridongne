@@ -168,7 +168,7 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 구현용 모델 전환 후 계획의 Task 1~4를 구현했다. 엄격한 날짜·시간·행정동 코드·소수 계약, 마이크로 단위 BigInt 합계, ZIP 엔트리 순차 리더, 동별 슬롯 완결성, 전년 우선·전월 제한 fallback 비교를 추가했다.
 - `data/source-contracts/`에 세 원본 SHA-256 계약과 빈 행정동 변경 목록을 기록하고, 세 ZIP을 `data/work/`에서 재현 실행했다. 세 월 모두 정규화 상태는 `complete`다.
 - 방법 근거를 `unverified`로 두었기 때문에 비교 CLI는 임의 증감을 공개하지 않고 각 동을 `unavailable / method_unverified`로 기록했다. 출력은 `monthly.json`·`comparison.json`·`manifest.json`·`run.json`·`complete.json`의 원자적 디렉터리다.
-- 검증: 집중 테스트, typecheck, lint 통과. 전체 테스트·build는 마지막 인계 전에 재실행한다. 변경 파일은 기존 디자인 작업과 분리해 커밋했다(`1986912`, `80ed964`, `9575749`).
+- 검증: 집중 테스트와 전체 테스트 40개, lint, typecheck, `pnpm build`, `git diff --check` 통과. 변경 파일은 기존 디자인 작업과 분리해 커밋했다(`1986912`, `80ed964`, `9575749`, `13e2a67`).
 
 ### 2026-09-07 — 생활인구 정규화 구현 계획 작성
 
