@@ -36,6 +36,19 @@ afterEach(async () => {
 });
 
 describe("population CLI publication boundary", () => {
+  it("keeps structural source failures as located diagnostics", async () => {
+    const directory = await workspace();
+    const input = path.join(directory, "input.csv"), contract = path.join(directory, "contract.json");
+    const csv = POPULATION_HEADERS.join(",") + "\n\n20260201,00\n";
+    await writeFile(input, csv);
+    await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
+    const output = path.join(directory, "output");
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
+    const errors = JSON.parse(await readFile(path.join(output, "errors.json"), "utf8"));
+    expect(errors.diagnostics.counts).toEqual({ csv_structure_error: 1 });
+    expect(errors.diagnostics.samples[0]).toMatchObject({ entry: "input.csv", line: 3 });
+    expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
+  });
   it("leaves diagnostics but no published monthly artifact for an invalid observation", async () => {
     const directory = await workspace();
     const input = path.join(directory, "input.csv");
@@ -92,11 +105,11 @@ describe("population CLI publication boundary", () => {
     for (let index = 0; index < dirs.length; index += 1) {
       const monthly: MonthAggregation = {
         period: periods[index], status: "complete", expectedSlotsPerDong: 1, observedSlots: 1,
-        errors: [], methodId: "fixture", methodStatus: verified ? "verified" : "unverified",
+        errors: [], coverageStatus: "observed_only", methodId: "fixture", methodStatus: verified ? "verified" : "unverified",
         input: { ...contractInput(periods[index]),
           method: verified ? { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] }
             : { status: "unverified", version: null, evidenceIds: [] } },
-        dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(100000000), mean: "100.000000", missingSlots: 0, status: "complete" } },
+        dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(100000000), mean: "100.000000", missingSlots: 0, status: "complete", firstDate: `${periods[index]}01`, lastDate: `${periods[index]}01`, missingRate: 0 } },
       };
       await writeNormalizationOutput(dirs[index], monthly, {});
     }

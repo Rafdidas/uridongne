@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { aggregatePopulation } from "./aggregate-month";
 import type { LocatedRow } from "./types";
+import { PopulationSourceError } from "./errors";
 
 const row = (date: string, hour: number, dongCode: string, population: string): LocatedRow => ({
   entry: "fixture.csv",
@@ -14,6 +15,28 @@ async function* rows(values: LocatedRow[]): AsyncGenerator<LocatedRow> {
 }
 
 describe("aggregatePopulation", () => {
+  it("counts every error while retaining at most 20 located samples", async () => {
+    const values = Array.from({ length: 25 }, (_, index) => ({ ...row("20260201", 0, "00123456", "*"), line: index + 2 }));
+    values.push({ ...row("20260230", 0, "00123456", "10"), line: 27 });
+    const result = await aggregatePopulation("202602", rows(values));
+    expect(result.diagnostics?.counts).toEqual({ invalid_population: 25, invalid_date: 1 });
+    expect(result.diagnostics?.samples).toHaveLength(20);
+    expect(result.diagnostics?.samples[0]).toEqual({ code: "invalid_population", entry: "fixture.csv", line: 2 });
+  });
+  it("preserves counts with samples disabled", async () => {
+    const result = await aggregatePopulation("202602", rows([row("20260201", 0, "00123456", "*")]), { maxErrors: 0 });
+    expect(result.diagnostics).toEqual({ counts: { invalid_population: 1 }, samples: [] });
+  });
+  it("invalidates partial data and preserves a reader failure location", async () => {
+    async function* failed() {
+      yield row("20260201", 0, "00123456", "10");
+      throw new PopulationSourceError("csv_structure_error", "invalid CSV", "broken.csv", 9);
+    }
+    const result = await aggregatePopulation("202602", failed());
+    expect(result.status).toBe("invalid");
+    expect(result.dongs).toEqual({});
+    expect(result.diagnostics).toEqual({ counts: { csv_structure_error: 1 }, samples: [{ code: "csv_structure_error", entry: "broken.csv", line: 9 }] });
+  });
   it("does not approve an empty source as complete", async () => {
     const result = await aggregatePopulation("202602", rows([]));
     expect(result.status).toBe("invalid");

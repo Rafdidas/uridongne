@@ -49,13 +49,15 @@ pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir 
 `--schema`에는 `date`, `hour`, `dongCode`, `totalPopulation`에 대응하는 실제 헤더명을 JSON 객체로 전달합니다. 측정 결과는 [원본 표본 검증 보고서](docs/data/2026-09-04-source-sample-validation.md)에서 확인할 수 있습니다.
 정규화 계약·실행 결과는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)과 `data/source-contracts/`에서 확인할 수 있습니다.
 
-출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월을 읽을 때는 manifest와 monthly/run 해시를 모두 검사합니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
+출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월은 승인된 `MonthResult` JSON 계약으로 기록·검증하며, manifest에는 내용 파일 해시를 두고 실행 메타데이터(`run.json`) 해시는 `complete.json`에서 별도로 검사합니다. 비교 후보는 성공 산출물과 명시적 실패 진단을 구분해 읽습니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
 
 정규화 계약은 `data/source-contracts/population-202607.json`을 예로 사용합니다. 필수 항목은 `period`, 서울 기준 달력 날짜 `asOfDate`, `sourceId: OA-23016`, `schemaVersion: oa23016-hourly-v1`, `method`, `registry`, 원본 SHA-256인 `expectedSha256`입니다. 해당 월이 끝난 다음 달 1일부터 처리할 수 있습니다. 누락·알 수 없는 필드·잘못된 설정은 원본을 읽기 전에 종료 코드 1로 거부하고, 원본 해시/관측 검증 실패는 2로 처리합니다.
 
 방법 미확인은 `{ "status": "unverified", "version": null, "evidenceIds": [] }`로 기록합니다. `verified`에는 버전과 비어 있지 않은 근거 ID 목록이 필요하지만, 형식 검사는 그 자료 내용의 사실 확인을 대신하지 않습니다. 근거 계약이 없는 이전 결과의 `methodStatus: verified`만으로 비교를 허용하지 않습니다.
 
 공식 목록이 없으면 `registry: null`과 `coverageStatus: observed_only`입니다. 목록이 있으면 `version`, `evidenceIds`, `dongs`를 전달하며 각 동은 8자리 문자열 `code`, 포함 시작일 `validFrom`, 제외 종료일 `validToExclusive`(기한 없음은 null)를 가집니다. 중복 코드·잘못된 날짜를 거부하고 관측의 코드와 유효기간을 검사합니다. 월중 신설·폐지는 월 전체 슬롯 기준 미완결로 남습니다.
+
+원본 ZIP 한도는 256 MiB, 엔트리당 128 MiB, 해제 총합 1 GiB, 파일 64개입니다. 해제 전에 전체 ZIP 목록을 검사하며 비CSV 파일은 거부합니다. CSV는 청크로 파싱하고 레코드 크기를 64 KiB 파서 설정으로 제한합니다. `diagnostics.counts`는 오류 종류별 전체 건수, `samples`는 최대 20건의 코드·엔트리·물리적 종료 행입니다. 행을 특정할 수 없는 파일 오류는 null로 기록합니다.
 
 OpenNext 빌드는 Windows에서 심볼릭 링크 권한 제약으로 실패할 수 있습니다. 현재는 WSL 또는 Linux CI에서 재검증이 필요합니다.
 

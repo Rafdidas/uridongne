@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import type { MonthAggregation } from "./aggregate-month";
-import { readMonthlyOutput, writeNormalizationOutput } from "./artifact-output";
+import { readCandidateOutcome, readMonthlyOutput, writeNormalizationOutput } from "./artifact-output";
 
 const directories: string[] = [];
 async function target() {
@@ -14,9 +14,10 @@ async function target() {
 }
 const month = (): MonthAggregation => ({
   period: "202602", status: "incomplete", expectedSlotsPerDong: 672,
-  observedSlots: 1, errors: [],
+  observedSlots: 1, errors: [], diagnostics: { counts: {}, samples: [] }, methodStatus: "unverified", input: { period: "202602", asOfDate: "2026-03-01", sourceId: "OA-23016", schemaVersion: "oa23016-hourly-v1",
+    method: { status: "unverified", version: null, evidenceIds: [] }, registry: null }, coverageStatus: "observed_only",
   dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(123456789),
-    mean: null, missingSlots: 671, status: "incomplete" } },
+    mean: null, missingSlots: 671, status: "incomplete", firstDate: null, lastDate: null, missingRate: 671 / 672 } },
 });
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })));
@@ -34,6 +35,29 @@ describe("population artifact publication", () => {
     await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
     expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
     await expect(readMonthlyOutput(output)).rejects.toThrow();
+  });
+
+  it("reads an explicitly failed candidate without treating missing completion as failure", async () => {
+    const output = await target();
+    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
+    await expect(readCandidateOutcome(output)).resolves.toMatchObject({ kind: "invalid", period: "202602" });
+  });
+
+  it("rejects a failure directory with mismatched diagnostics", async () => {
+    const output = await target();
+    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
+    await writeFile(path.join(output, "errors.json"), JSON.stringify({ period: "202601", errors: ["wrong period"], diagnostics: { counts: { source_error: 1 }, samples: [] } }));
+    await expect(readCandidateOutcome(output)).rejects.toThrow(/period/);
+  });
+
+  it("keeps the content manifest stable when run metadata changes", async () => {
+    const first = await target();
+    const second = await target();
+    await writeNormalizationOutput(first, month(), { startedAt: "2026-09-07T00:00:00Z" });
+    await writeNormalizationOutput(second, month(), { startedAt: "2026-09-07T00:01:00Z" });
+    expect(await readFile(path.join(first, "manifest.json"), "utf8")).toBe(await readFile(path.join(second, "manifest.json"), "utf8"));
+    expect(await readMonthlyOutput(first)).toEqual(month());
+    expect(await readMonthlyOutput(second)).toEqual(month());
   });
 
   it("rejects changed run metadata even when monthly data is intact", async () => {

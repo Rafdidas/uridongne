@@ -3,6 +3,7 @@ import { formatMean } from "./decimal";
 import { parseObservation } from "./observation";
 import { parseMonthInput } from "./contract";
 import type { ExpectedDong, LocatedRow, MonthInput } from "./types";
+import { PopulationSourceError, type PopulationDiagnostics } from "./errors";
 
 export interface DongAggregation {
   dongCode: string;
@@ -27,6 +28,7 @@ export interface MonthAggregation {
   methodStatus?: "verified" | "unverified";
   input?: MonthInput;
   coverageStatus?: "observed_only" | "expected_registry";
+  diagnostics?: PopulationDiagnostics;
 }
 
 export interface AggregateOptions {
@@ -41,44 +43,59 @@ export async function aggregatePopulation(
   options: AggregateOptions = {},
 ): Promise<MonthAggregation> {
   const expectedSlotsPerDong = daysInMonth(period) * 24;
-  const maxErrors = options.maxErrors ?? 20;
+  const requestedSamples = options.maxErrors ?? 20;
+  if (!Number.isSafeInteger(requestedSamples) || requestedSamples < 0) throw new Error("invalid error sample limit");
+  const maxErrors = Math.min(requestedSamples, 20);
   const sums = new Map<string, { count: number; sumMicros: bigint; firstDate: string | null; lastDate: string | null }>();
   const registry = options.registryDongs ? new Map(options.registryDongs.map(dong => [dong.code, dong])) : null;
   const slots = new Set<string>();
   const errors: string[] = [];
   let invalid = false;
   let rowCount = 0;
-
-  for await (const row of rows) {
-    rowCount += 1;
-    try {
-      const observation = parseObservation(row, period);
-      if (registry) {
-        const dong = registry.get(observation.dongCode);
-        if (!dong) throw new Error(`unregistered dong at ${row.entry}:${row.line}`);
-        const date = `${observation.date.slice(0, 4)}-${observation.date.slice(4, 6)}-${observation.date.slice(6)}`;
-        if (date < dong.validFrom || (dong.validToExclusive !== null && date >= dong.validToExclusive)) {
-          throw new Error(`outside dong validity at ${row.entry}:${row.line}`);
-        }
-      }
-      const slot = `${observation.dongCode}:${observation.date}:${observation.hour}`;
-      if (slots.has(slot)) throw new Error(`duplicate slot at ${row.entry}:${row.line}`);
-      slots.add(slot);
-      const current = sums.get(observation.dongCode) ?? { count: 0, sumMicros: BigInt(0), firstDate: null, lastDate: null };
-      current.count += 1;
-      current.sumMicros += observation.populationMicros;
-      if (current.firstDate === null || observation.date < current.firstDate) current.firstDate = observation.date;
-      if (current.lastDate === null || observation.date > current.lastDate) current.lastDate = observation.date;
-      sums.set(observation.dongCode, current);
-    } catch (error) {
-      invalid = true;
-      if (errors.length < maxErrors) errors.push(error instanceof Error ? error.message : String(error));
+  const diagnostics: PopulationDiagnostics = { counts: {}, samples: [] };
+  function recordError(error: unknown, row?: LocatedRow) {
+    invalid = true;
+    const located = error instanceof PopulationSourceError ? error :
+      new PopulationSourceError(row ? "observation_error" : "source_read_error", "unable to process population source", row?.entry ?? "<source>", row?.line ?? null);
+    diagnostics.counts[located.code] = (diagnostics.counts[located.code] ?? 0) + 1;
+    if (errors.length < maxErrors) {
+      errors.push(located.message);
+      diagnostics.samples.push({ code: located.code, entry: located.entry, line: located.line });
     }
   }
 
-  if (rowCount === 0) {
-    invalid = true;
-    if (errors.length < maxErrors) errors.push("empty population source");
+  try {
+    for await (const row of rows) {
+      rowCount += 1;
+      try {
+        const observation = parseObservation(row, period);
+        if (registry) {
+          const dong = registry.get(observation.dongCode);
+          if (!dong) throw new PopulationSourceError("unregistered_dong", "unregistered dong", row.entry, row.line);
+          const date = `${observation.date.slice(0, 4)}-${observation.date.slice(4, 6)}-${observation.date.slice(6)}`;
+          if (date < dong.validFrom || (dong.validToExclusive !== null && date >= dong.validToExclusive)) {
+            throw new PopulationSourceError("outside_dong_validity", "outside dong validity", row.entry, row.line);
+          }
+        }
+        const slot = `${observation.dongCode}:${observation.date}:${observation.hour}`;
+        if (slots.has(slot)) throw new PopulationSourceError("duplicate_slot", "duplicate slot", row.entry, row.line);
+        slots.add(slot);
+        const current = sums.get(observation.dongCode) ?? { count: 0, sumMicros: BigInt(0), firstDate: null, lastDate: null };
+        current.count += 1;
+        current.sumMicros += observation.populationMicros;
+        if (current.firstDate === null || observation.date < current.firstDate) current.firstDate = observation.date;
+        if (current.lastDate === null || observation.date > current.lastDate) current.lastDate = observation.date;
+        sums.set(observation.dongCode, current);
+      } catch (error) {
+        recordError(error, row);
+      }
+    }
+  } catch (error) {
+    recordError(error);
+  }
+
+  if (rowCount === 0 && !invalid) {
+    recordError(new PopulationSourceError("empty_source", "empty population source", "<source>"));
   }
 
   const dongCodes = new Set<string>(sums.keys());
@@ -111,6 +128,7 @@ export async function aggregatePopulation(
     observedSlots: slots.size,
     dongs: invalid ? {} : dongs,
     errors,
+    diagnostics: { counts: Object.fromEntries(Object.entries(diagnostics.counts).sort(([a], [b]) => a.localeCompare(b))), samples: diagnostics.samples },
   };
 }
 

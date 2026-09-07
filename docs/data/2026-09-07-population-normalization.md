@@ -52,3 +52,11 @@ pnpm data:compare-population -- --current-dir data/work/population-202607-run1 -
 세 결과 모두 observed_only와 method unverified다. 공식 목록 및 산출 방식 자료를 이번 실행에서 새로 확인한 것은 아니다. 비교 결과는 `data/work/population-comparison-contract3`에 기록했고 사유별 425/2/1건과 CLI 종료 코드 2가 유지된다.
 
 검증은 전체 99개 테스트와 lint·typecheck·Next build를 통과했다. 실제 프로세스 테스트로 잘못된 계약은 원본 읽기 전 코드 1, 원본 해시/관측 오류는 코드 2임을 확인했다.
+
+## 오류 진단·청크 파싱 도입 후 재검증
+
+`data/work/population-YYYYMM-stream4`에서 세 ZIP을 다시 처리했다. 202607/202507/202606의 슬롯 317,688/316,944/307,440개와 동 427/426/427개가 유지됐고 각 dongs 객체는 contract3과 동일했다. 모든 월에서 diagnostics.counts={}, samples=[]였다.
+
+비교 산출물은 `data/work/population-comparison-stream4`에 생성했고 전체 unavailable에 맞춰 CLI 코드 2를 반환했다. 이후 구현 모델에서 외부 `MonthResult` JSON 경계·실패 후보 읽기·내용 manifest와 실행 해시 분리를 추가했으며, 현재 로컬 검증은 테스트 121개·lint·typecheck를 통과했다. 실제 원본 재처리는 아직 다시 실행하지 않았다.
+
+CSV 정보의 line은 레코드의 물리적 종료 행이다. 헤더와 데이터 구분자는 엔트리 메타데이터에 별도로 남긴다. ZIP 해제 전 선언 크기 검증과 해제 후 실제 크기 검증을 수행하며, 엔트리 해독 문자열/ZIP 버퍼와 집계 상태의 최대 메모리 측정은 후속 작업이다.
