@@ -49,9 +49,9 @@ expect(() => parseMonthResult(bad)).toThrow();
 
 **Interfaces:** 성공 reader의 MonthAggregation 반환은 유지한다. readCandidateOutcome은 success의 monthly 또는 invalid의 검증된 MonthResult를 반환한다. Record<string, unknown> 진단 반환과 이중 타입 단언을 제거한다.
 
-- [ ] 해시는 맞지만 내용이 잘못된 monthly, 지원하지 않는 formatVersion, complete가 있는데 해시 불일치하며 errors도 있는 디렉터리, 실패 파일만 일부 존재하는 디렉터리를 거부하는 테스트를 작성한다.
-- [ ] 성공 manifest는 formatVersion=2, kind, 처리 버전, 입력 원본 해시·계약 해시, 내용 파일 해시를 가진다. run의 실행 시각·로컬 경로는 manifest에 넣지 않는다. complete는 formatVersion=2, manifestSha256, runSha256를 갖는다.
-- [ ] monthly 바이트를 한 번 읽어 해시 확인 후 동일 Buffer를 JSON 파싱한다. run도 한 번 읽어 해시·kind·period·계약·원본 참조의 일치를 검사한다.
+- [x] 해시는 맞지만 내용이 잘못된 monthly, 지원하지 않는 formatVersion, complete가 있는데 해시 불일치하며 errors도 있는 디렉터리, 실패 파일만 일부 존재하는 디렉터리를 거부하는 테스트를 작성한다.
+- [x] 성공 manifest는 formatVersion=2, kind, 처리 버전, 입력 원본 해시·계약 해시, 내용 파일 해시를 가진다. run의 실행 시각·로컬 경로는 manifest에 넣지 않는다. complete는 formatVersion=2, manifestSha256, runSha256를 갖는다.
+- [x] monthly 바이트를 한 번 읽어 해시 확인 후 동일 Buffer를 JSON 파싱한다. run도 한 번 읽어 해시·kind·period·계약·원본 참조의 일치를 검사한다.
 
 ```ts
 const bytes = await readFile(monthlyPath);
@@ -61,10 +61,10 @@ if (createHash("sha256").update(bytes).digest("hex") !== expectedHash) {
 const result = parseMonthResult(JSON.parse(bytes.toString("utf8")));
 ```
 
-- [ ] 실패 출력은 errors.json에 검증된 invalid MonthResult, run.json에 입력/원본/처리 계약을 기록한다. 마지막에 failure.json을 쓰며 formatVersion=2, kind=population-normalization-failure, errorsSha256, runSha256를 포함한다. 실패에는 complete·monthly·성공 manifest를 두지 않는다.
-- [ ] reader는 complete 존재 시 성공 검증만 수행한다. complete와 failure가 함께 있으면 손상으로 거부한다. complete가 없을 때만 failure 봉투를 검증하며 missing marker를 invalid로 추정하지 않는다. 해시는 무결성 확인이지 외부 서명 인증이 아님을 문서에 명시한다.
-- [ ] samples=[]인 실제 오류 건수 양수 실패도 정상 invalid로 읽는다. 레거시 출력은 명확한 unsupported format 오류로 거부하고 원본 재처리를 안내한다.
-- [ ] 실제 normalize CLI가 생성한 성공/실패 fixture를 reader로 검증한다. 실행: artifact-contract, artifact-output, population-cli 테스트와 typecheck. 형식 변경을 README와 실행 기록에 반영한다.
+- [x] 실패 출력은 errors.json에 검증된 invalid MonthResult, run.json에 입력/원본/처리 계약을 기록한다. 마지막에 failure.json을 쓰며 formatVersion=2, kind=population-normalization-failure, errorsSha256, runSha256를 포함한다. 실패에는 complete·monthly·성공 manifest를 두지 않는다.
+- [x] reader는 complete 존재 시 성공 검증만 수행한다. complete와 failure가 함께 있으면 손상으로 거부한다. complete가 없을 때만 failure 봉투를 검증하며 missing marker를 invalid로 추정하지 않는다. 해시는 무결성 확인이지 외부 서명 인증이 아님을 문서에 명시한다.
+- [x] samples=[]인 실제 오류 건수 양수 실패도 정상 invalid로 읽는다. 레거시 출력은 명확한 unsupported format 오류로 거부하고 원본 재처리를 안내한다.
+- [x] 실제 normalize CLI가 생성한 성공/실패 fixture를 reader로 검증한다. 실행: artifact-contract, artifact-output, population-cli 테스트와 typecheck. 형식 변경을 README와 실행 기록에 반영한다.
 
 ## Task 3 — 경계 날짜와 비교 CLI
 

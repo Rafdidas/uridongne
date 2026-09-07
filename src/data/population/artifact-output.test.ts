@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -19,6 +19,7 @@ const month = (): MonthAggregation => ({
   dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(123456789),
     mean: null, missingSlots: 671, status: "incomplete", firstDate: "20260201", lastDate: "20260201", missingRate: 671 / 672 } },
 });
+const metadata = () => ({ sourceSha256: "a".repeat(64), contract: { period: "202602", sourceId: "OA-23016" } });
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })));
 });
@@ -26,35 +27,36 @@ afterEach(async () => {
 describe("population artifact publication", () => {
   it("round trips a leading-zero code and exact sums", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), {});
+    await writeNormalizationOutput(output, month(), metadata());
     expect(await readMonthlyOutput(output)).toEqual(month());
   });
 
   it("keeps invalid runs diagnostic-only without a completion marker", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
-    expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
+    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
+    expect((await readdir(output)).sort()).toEqual(["errors.json", "failure.json", "run.json"]);
     await expect(readMonthlyOutput(output)).rejects.toThrow();
   });
 
   it("reads an explicitly failed candidate without treating missing completion as failure", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
+    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
     await expect(readCandidateOutcome(output)).resolves.toMatchObject({ kind: "invalid", period: "202602" });
   });
 
   it("rejects a failure directory with mismatched diagnostics", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"] }, {});
+    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
     await writeFile(path.join(output, "errors.json"), JSON.stringify({ period: "202601", errors: ["wrong period"], diagnostics: { counts: { source_error: 1 }, samples: [] } }));
-    await expect(readCandidateOutcome(output)).rejects.toThrow(/period/);
+    await expect(readCandidateOutcome(output)).rejects.toThrow(/hash mismatch/);
   });
 
   it("keeps the content manifest stable when run metadata changes", async () => {
     const first = await target();
     const second = await target();
-    await writeNormalizationOutput(first, month(), { startedAt: "2026-09-07T00:00:00Z" });
-    await writeNormalizationOutput(second, month(), { startedAt: "2026-09-07T00:01:00Z" });
+    await writeNormalizationOutput(first, month(), { ...metadata(), startedAt: "2026-09-07T00:00:00Z" });
+    await writeNormalizationOutput(second, month(), { ...metadata(), startedAt: "2026-09-07T00:01:00Z" });
+    expect(JSON.parse(await readFile(path.join(first, "manifest.json"), "utf8"))).toMatchObject({ formatVersion: 2, kind: "population-normalization" });
     expect(await readFile(path.join(first, "manifest.json"), "utf8")).toBe(await readFile(path.join(second, "manifest.json"), "utf8"));
     expect(await readMonthlyOutput(first)).toEqual(month());
     expect(await readMonthlyOutput(second)).toEqual(month());
@@ -62,24 +64,38 @@ describe("population artifact publication", () => {
 
   it("rejects changed run metadata even when monthly data is intact", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), {});
+    await writeNormalizationOutput(output, month(), metadata());
     await writeFile(path.join(output, "run.json"), "{}\n");
     await expect(readMonthlyOutput(output)).rejects.toThrow(/hash mismatch/);
   });
 
   it("rejects changed monthly data", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), {});
+    await writeNormalizationOutput(output, month(), metadata());
     await writeFile(path.join(output, "monthly.json"), "{}\n");
     await expect(readMonthlyOutput(output)).rejects.toThrow(/hash mismatch/);
   });
 
   it("preserves existing outputs and cleans its own staging directory", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), {});
+    await writeNormalizationOutput(output, month(), metadata());
     const before = await readFile(path.join(output, "complete.json"), "utf8");
-    await expect(writeNormalizationOutput(output, month(), { replacement: true })).rejects.toThrow();
+    await expect(writeNormalizationOutput(output, month(), { ...metadata(), replacement: true })).rejects.toThrow();
     expect(await readFile(path.join(output, "complete.json"), "utf8")).toBe(before);
     expect(await readdir(path.dirname(output))).toEqual(["result"]);
+  });
+
+  it("rejects a directory containing both success and failure markers", async () => {
+    const output = await target();
+    await writeNormalizationOutput(output, month(), metadata());
+    await writeFile(path.join(output, "failure.json"), JSON.stringify({ formatVersion: 2, kind: "population-normalization-failure", errorsSha256: "a".repeat(64), runSha256: "b".repeat(64) }));
+    await expect(readCandidateOutcome(output)).rejects.toThrow(/both/);
+  });
+
+  it("rejects a legacy output without a versioned marker", async () => {
+    const output = await target();
+    await mkdir(output, { recursive: true });
+    await writeFile(path.join(output, "monthly.json"), "{}\n");
+    await expect(readCandidateOutcome(output)).rejects.toThrow(/marker|formatVersion|unsupported/);
   });
 });

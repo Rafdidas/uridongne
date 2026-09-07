@@ -45,9 +45,9 @@ describe("population CLI publication boundary", () => {
     const output = path.join(directory, "output");
     expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
     const errors = JSON.parse(await readFile(path.join(output, "errors.json"), "utf8"));
-    expect(errors.diagnostics.counts).toEqual({ csv_structure_error: 1 });
-    expect(errors.diagnostics.samples[0]).toMatchObject({ entry: "input.csv", line: 3 });
-    expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
+    expect(errors.errors.counts).toEqual({ csv_structure_error: 1 });
+    expect(errors.errors.samples[0]).toMatchObject({ entry: "input.csv", line: 3 });
+    expect((await readdir(output)).sort()).toEqual(["errors.json", "failure.json", "run.json"]);
   });
   it("leaves diagnostics but no published monthly artifact for an invalid observation", async () => {
     const directory = await workspace();
@@ -58,7 +58,7 @@ describe("population CLI publication boundary", () => {
     await writeFile(input, csv);
     await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
     expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
-    expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
+    expect((await readdir(output)).sort()).toEqual(["errors.json", "failure.json", "run.json"]);
   });
 
   it.each([

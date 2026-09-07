@@ -23,12 +23,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 공개 전 검증 보완 Task 1 월 산출물 불변식 구현·검증 완료. Task 2 형식 버전·성공/실패 산출물 봉투 검증 진행 대기 |
+| 작업 단계 | 공개 전 검증 보완 Task 2 형식 버전·성공/실패 산출물 봉투 검증 완료. 다음은 Task 3 경계 날짜·비교 CLI 보완 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-07 공개 전 검증 보완 후 테스트 125개, lint·typecheck 통과. Next build는 이전 단계에서 통과 |
+| 앱 빌드·테스트 | 2026-09-07 공개 전 검증 보완 후 테스트 130개, lint·typecheck 통과. Next build는 이전 단계에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
@@ -170,6 +170,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-07 — 형식 버전 있는 성공·실패 산출물 봉투
+
+- `artifact-contract.ts`를 추가해 성공 manifest와 실패 봉투의 `formatVersion=2`, kind, 해시 필드를 별도 검증한다.
+- 성공 산출물은 `monthly.json`을 한 번 읽은 Buffer로 해시와 파싱을 수행하고, run의 기간·원본 해시·계약 해시·처리 버전을 manifest와 대조한다. 실패 산출물은 검증된 invalid `MonthResult`와 `failure.json`의 errors/run 해시로 읽으며 complete와 failure 표식 동시 존재, 표식 없는 레거시 디렉터리는 거부한다.
+- normalize CLI 및 artifact reader/writer fixture를 새 형식으로 갱신했다. `pnpm test` 21개 파일·130개 통과, `pnpm typecheck`, `pnpm lint`, `git diff --check` 통과. 변경은 로컬 커밋만 남기고 push하지 않는다.
+- 다음은 후보 월중 경계 날짜와 비교 CLI 오류 코드·fallback 사유를 보완하는 Task 3이다.
 
 ### 2026-09-07 — 공개 전 보완 실행 계획 작성
 

@@ -49,7 +49,7 @@ pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir 
 `--schema`에는 `date`, `hour`, `dongCode`, `totalPopulation`에 대응하는 실제 헤더명을 JSON 객체로 전달합니다. 측정 결과는 [원본 표본 검증 보고서](docs/data/2026-09-04-source-sample-validation.md)에서 확인할 수 있습니다.
 정규화 계약·실행 결과는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)과 `data/source-contracts/`에서 확인할 수 있습니다.
 
-출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월은 승인된 `MonthResult` JSON 계약으로 기록·검증하며, manifest에는 내용 파일 해시를 두고 실행 메타데이터(`run.json`) 해시는 `complete.json`에서 별도로 검사합니다. 비교 후보는 성공 산출물과 명시적 실패 진단을 구분해 읽습니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
+출력에는 기존에 없는 디렉터리를 지정합니다. 정상·실패 산출물은 형식 버전 2를 사용합니다. 무효 월은 검증된 `errors.json`·`run.json`과 `failure.json`만 남기며 완료 표식과 성공 manifest를 생성하지 않습니다. 정상 월은 승인된 `MonthResult` JSON 계약으로 기록·검증하며, manifest에는 처리 버전·원본/계약 해시·내용 파일 해시를 두고 실행 메타데이터(`run.json`) 해시는 `complete.json`에서 별도로 검사합니다. 해시는 무결성 확인이며 외부 서명 인증이 아닙니다. 레거시 산출물은 자동 추정하지 않고 원본 재처리가 필요합니다. 비교 후보는 성공 산출물과 명시적 실패 진단을 구분해 읽습니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
 
 정규화 계약은 `data/source-contracts/population-202607.json`을 예로 사용합니다. 필수 항목은 `period`, 서울 기준 달력 날짜 `asOfDate`, `sourceId: OA-23016`, `schemaVersion: oa23016-hourly-v1`, `method`, `registry`, 원본 SHA-256인 `expectedSha256`입니다. 해당 월이 끝난 다음 달 1일부터 처리할 수 있습니다. 누락·알 수 없는 필드·잘못된 설정은 원본을 읽기 전에 종료 코드 1로 거부하고, 원본 해시/관측 검증 실패는 2로 처리합니다.
 현재 OA-23016의 공식 페이지는 데이터셋과 월별 파일 목록의 출처 확인에 사용하지만, 산출 방법 버전과 행정동 변경 이력이 확인되기 전까지 계약의 `method`는 `unverified`, `registry`는 `null`로 유지합니다. 반복 실행 결과와 보류 근거는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)에 기록합니다.
