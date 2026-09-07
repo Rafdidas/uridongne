@@ -8,7 +8,7 @@
 
 초기 개발 환경과 디자인 토큰을 준비했고, 서울시 상권·생활인구 실원본의 결정적 프로파일과 생활인구 월별 정규화·동별 비교 CLI를 구현했습니다. 방법 근거가 확인되지 않은 비교는 의도적으로 `unavailable`로 남깁니다. 자세한 작업 기록은 [handoff.md](handoff.md)를 참고하세요.
 
-정규화 CLI는 로컬 검증용입니다. 입력 계약·공식 코드 목록·방법 근거 검증 등 승인 설계의 일부는 아직 미구현이며, D1 적재·서비스 공개 전 보완이 필요합니다.
+정규화 CLI는 로컬 검증용입니다. 기준일·출처·해시·스키마·방법 근거 메타데이터와 행정동 목록 유효기간을 검사합니다. 실제 공식 근거 확보와 산출물 계약의 나머지 검증은 D1 적재·서비스 공개 전 보완이 필요합니다.
 
 ## 기술 구성
 
@@ -50,6 +50,12 @@ pnpm data:compare-population -- --current-dir <current-dir> --previous-year-dir 
 정규화 계약·실행 결과는 [생활인구 정규화 실행 기록](docs/data/2026-09-07-population-normalization.md)과 `data/source-contracts/`에서 확인할 수 있습니다.
 
 출력에는 기존에 없는 디렉터리를 지정합니다. 무효 월은 `errors.json`·`run.json`만 남기고 완료 표식을 생성하지 않습니다. 정상 월을 읽을 때는 manifest와 monthly/run 해시를 모두 검사합니다. 비교 결과가 전부 `unavailable`이면 결과 파일은 기록하되 비교 CLI는 종료 코드 2를 반환합니다(pnpm은 이를 명령 실패로 표시할 수 있습니다).
+
+정규화 계약은 `data/source-contracts/population-202607.json`을 예로 사용합니다. 필수 항목은 `period`, 서울 기준 달력 날짜 `asOfDate`, `sourceId: OA-23016`, `schemaVersion: oa23016-hourly-v1`, `method`, `registry`, 원본 SHA-256인 `expectedSha256`입니다. 해당 월이 끝난 다음 달 1일부터 처리할 수 있습니다. 누락·알 수 없는 필드·잘못된 설정은 원본을 읽기 전에 종료 코드 1로 거부하고, 원본 해시/관측 검증 실패는 2로 처리합니다.
+
+방법 미확인은 `{ "status": "unverified", "version": null, "evidenceIds": [] }`로 기록합니다. `verified`에는 버전과 비어 있지 않은 근거 ID 목록이 필요하지만, 형식 검사는 그 자료 내용의 사실 확인을 대신하지 않습니다. 근거 계약이 없는 이전 결과의 `methodStatus: verified`만으로 비교를 허용하지 않습니다.
+
+공식 목록이 없으면 `registry: null`과 `coverageStatus: observed_only`입니다. 목록이 있으면 `version`, `evidenceIds`, `dongs`를 전달하며 각 동은 8자리 문자열 `code`, 포함 시작일 `validFrom`, 제외 종료일 `validToExclusive`(기한 없음은 null)를 가집니다. 중복 코드·잘못된 날짜를 거부하고 관측의 코드와 유효기간을 검사합니다. 월중 신설·폐지는 월 전체 슬롯 기준 미완결로 남습니다.
 
 OpenNext 빌드는 Windows에서 심볼릭 링크 권한 제약으로 실패할 수 있습니다. 현재는 WSL 또는 Linux CI에서 재검증이 필요합니다.
 

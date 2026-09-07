@@ -1,4 +1,5 @@
 import type { DongAggregation, MonthAggregation } from "./aggregate-month";
+import { parseMonthInput, POPULATION_SCHEMA_VERSION } from "./contract";
 
 export interface AreaChange {
   dongCode: string;
@@ -52,7 +53,17 @@ function difference(current: DongAggregation, candidate: DongAggregation): { val
   };
 }
 
-function compatible(current: MonthAggregation, candidate: MonthAggregation, dongCode: string, reasons: string[]): DongAggregation | null {
+function verifiedMethodVersion(month: MonthAggregation): string | null {
+  if (!month.input || month.input.period !== month.period) return null;
+  try {
+    const input = parseMonthInput(month.input);
+    return input.method.status === "verified" ? input.method.version : null;
+  } catch {
+    return null;
+  }
+}
+
+function compatible(current: MonthAggregation, candidate: MonthAggregation, dongCode: string, reasons: string[], methods: Map<MonthAggregation, string | null>): DongAggregation | null {
   if (candidate.status === "invalid") {
     reasons.push("invalid_source");
     return null;
@@ -65,12 +76,17 @@ function compatible(current: MonthAggregation, candidate: MonthAggregation, dong
     reasons.push("candidate_incomplete");
     return null;
   }
-  if (current.methodId !== candidate.methodId) {
-    reasons.push("method_mismatch");
+  if (current.input && candidate.input &&
+    (current.input.schemaVersion !== candidate.input.schemaVersion || current.input.schemaVersion !== POPULATION_SCHEMA_VERSION)) {
+    reasons.push("schema_mismatch");
     return null;
   }
-  if (current.methodStatus !== "verified" || candidate.methodStatus !== "verified") {
+  if (!methods.get(current) || !methods.get(candidate)) {
     reasons.push("method_unverified");
+    return null;
+  }
+  if (methods.get(current) !== methods.get(candidate)) {
+    reasons.push("method_mismatch");
     return null;
   }
   return candidate.dongs[dongCode];
@@ -79,6 +95,7 @@ function compatible(current: MonthAggregation, candidate: MonthAggregation, dong
 export function compareMonths(current: MonthAggregation, previousYear: MonthAggregation, previousMonth: MonthAggregation, changes: AreaChange[] = []): DongComparison[] {
   const periods = expectedPeriods(current.period);
   if (previousYear.period !== periods.previousYear || previousMonth.period !== periods.previousMonth) throw new Error("comparison candidate period mismatch");
+  const methods = new Map([current, previousYear, previousMonth].map(month => [month, verifiedMethodVersion(month)]));
   const codes = new Set([...Object.keys(current.dongs), ...Object.keys(previousYear.dongs), ...Object.keys(previousMonth.dongs)]);
   return [...codes].sort().map((dongCode) => {
     const currentDong = current.dongs[dongCode];
@@ -91,10 +108,10 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
     }
     const changed = changes.some((change) => change.dongCode === dongCode && change.effectivePeriod > previousYear.period && change.effectivePeriod <= current.period);
     if (changed) return { dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] };
-    let candidate = compatible(current, previousYear, dongCode, reasons);
+    let candidate = compatible(current, previousYear, dongCode, reasons, methods);
     let mode: DongComparison["mode"] = "same_month_previous_year";
     if (!candidate && !reasons.includes("administrative_area_unverified")) {
-      candidate = compatible(current, previousMonth, dongCode, reasons);
+      candidate = compatible(current, previousMonth, dongCode, reasons, methods);
       if (candidate) {
         mode = "previous_month";
       }

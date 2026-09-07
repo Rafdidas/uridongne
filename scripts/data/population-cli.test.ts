@@ -10,6 +10,10 @@ import { writeNormalizationOutput } from "../../src/data/population/artifact-out
 import type { MonthAggregation } from "../../src/data/population/aggregate-month";
 import { POPULATION_HEADERS } from "../../src/data/population/schema";
 
+const contractInput = (period = "202602") => ({
+  period, asOfDate: "2026-09-07", sourceId: "OA-23016" as const, schemaVersion: "oa23016-hourly-v1",
+  method: { status: "unverified" as const, version: null, evidenceIds: [] as string[] }, registry: null,
+});
 const exec = promisify(execFile);
 const directories: string[] = [];
 async function workspace() {
@@ -39,9 +43,46 @@ describe("population CLI publication boundary", () => {
     const output = path.join(directory, "output");
     const csv = POPULATION_HEADERS.join(",") + "\n" + ["20260201", "00", "00123456", "*", ...Array(28).fill("*")].join(",") + "\n";
     await writeFile(input, csv);
-    await writeFile(contract, JSON.stringify({ period: "202602", expectedSha256: createHash("sha256").update(csv).digest("hex") }));
+    await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
     expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(2);
     expect((await readdir(output)).sort()).toEqual(["errors.json", "run.json"]);
+  });
+
+  it.each([
+    { ...contractInput(), expectedSha256: "bad" },
+    { ...contractInput(), expectedSha256: "a".repeat(64), asOfDate: "2026-02-28" },
+    { ...contractInput(), expectedSha256: "a".repeat(64), method: { status: "verified", version: "v1", evidenceIds: [] } },
+    { period: "202602" },
+  ])("rejects configuration before opening the source %#", async value => {
+    const directory = await workspace();
+    const contract = path.join(directory, "contract.json");
+    await writeFile(contract, JSON.stringify(value));
+    const code = await run("normalize-population.ts", ["--input", path.join(directory, "nonexistent.csv"),
+      "--contract", contract, "--output-dir", path.join(directory, "output")]);
+    expect(code).toBe(1);
+    expect(await readdir(directory)).toEqual(["contract.json"]);
+  });
+
+  it("publishes the validated contract and coverage without fabricating a method version", async () => {
+    const directory = await workspace();
+    const input = path.join(directory, "input.csv"), contract = path.join(directory, "contract.json");
+    const csv = POPULATION_HEADERS.join(",") + "\n" + ["20260201", "0", "00123456", "150", ...Array(28).fill("*")].join(",") + "\n";
+    await writeFile(input, csv);
+    await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: createHash("sha256").update(csv).digest("hex") }));
+    const output = path.join(directory, "output");
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", output])).toBe(0);
+    const monthly = JSON.parse(await readFile(path.join(output, "monthly.json"), "utf8"));
+    expect(monthly).toMatchObject({ input: contractInput(), coverageStatus: "observed_only" });
+    expect(monthly.methodId).toBeUndefined();
+  });
+
+  it("rejects a source hash mismatch without publishing", async () => {
+    const directory = await workspace();
+    const input = path.join(directory, "input.csv"), contract = path.join(directory, "contract.json");
+    await writeFile(input, "wrong source");
+    await writeFile(contract, JSON.stringify({ ...contractInput(), expectedSha256: "a".repeat(64) }));
+    expect(await run("normalize-population.ts", ["--input", input, "--contract", contract, "--output-dir", path.join(directory, "output")])).toBe(2);
+    expect((await readdir(directory)).sort()).toEqual(["contract.json", "input.csv"]);
   });
 
   it.each([false, true])("returns the comparison result status for verified=%s", async (verified) => {
@@ -52,6 +93,9 @@ describe("population CLI publication boundary", () => {
       const monthly: MonthAggregation = {
         period: periods[index], status: "complete", expectedSlotsPerDong: 1, observedSlots: 1,
         errors: [], methodId: "fixture", methodStatus: verified ? "verified" : "unverified",
+        input: { ...contractInput(periods[index]),
+          method: verified ? { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] }
+            : { status: "unverified", version: null, evidenceIds: [] } },
         dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(100000000), mean: "100.000000", missingSlots: 0, status: "complete" } },
       };
       await writeNormalizationOutput(dirs[index], monthly, {});

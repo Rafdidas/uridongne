@@ -1,6 +1,9 @@
 {
   "period": "202507",
-  "methodId": "official-hourly-mean-v1",
-  "methodStatus": "unverified",
+  "asOfDate": "2026-09-07",
+  "sourceId": "OA-23016",
+  "schemaVersion": "oa23016-hourly-v1",
+  "method": { "status": "unverified", "version": null, "evidenceIds": [] },
+  "registry": null,
   "expectedSha256": "30221cca72f9bcdc55386f0d117c6104e19d257fbed8a3f5760a31aadf0cb146"
 }

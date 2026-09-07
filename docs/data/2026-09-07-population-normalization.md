@@ -42,3 +42,13 @@ pnpm data:compare-population -- --current-dir data/work/population-202607-run1 -
 비교 합집합 428개 코드의 결과: method_unverified 425개, administrative_area_unverified 2개, current_incomplete 1개. 전년 대비 현재 전용 코드는 11230515·11230533이고 전년 전용 코드는 11230536이다. 현재와 전월 코드 목록은 동일하다. 코드 차이만으로 공식 경계 변경을 확정하지 않는다.
 
 비교 산출물은 `data/work/population-comparison-validation2`에 기록됐으며 전체 unavailable에 맞춰 CLI는 종료 코드 2를 반환했다. 오류 보완 후 전체 테스트 55개와 lint·typecheck·Next build가 통과했다. 상세 계약·공식 근거·메모리 측정 등 남은 설계 항목은 handoff의 최신 이력을 따른다.
+
+## 입력 계약 도입 후 재검증
+
+세 source-contract에 asOfDate=2026-09-07, sourceId=OA-23016, schemaVersion=oa23016-hourly-v1, method={status:unverified,version:null,evidenceIds:[]}, registry=null을 명시했다. 원본 SHA-256은 그대로 유지했다.
+
+새 실행 경로는 `data/work/population-YYYYMM-contract3`이다. 입력 계약·coverageStatus·최초/최종일·누락률이 추가되어 JSON 전체 해시는 이전 형식과 달라지지만, 모든 동의 관측 수·정수 합계·평균·결측 수·상태는 validation2와 일치한다. 위 표의 행 수와 동 수도 유지된다.
+
+세 결과 모두 observed_only와 method unverified다. 공식 목록 및 산출 방식 자료를 이번 실행에서 새로 확인한 것은 아니다. 비교 결과는 `data/work/population-comparison-contract3`에 기록했고 사유별 425/2/1건과 CLI 종료 코드 2가 유지된다.
+
+검증은 전체 99개 테스트와 lint·typecheck·Next build를 통과했다. 실제 프로세스 테스트로 잘못된 계약은 원본 읽기 전 코드 1, 원본 해시/관측 오류는 코드 2임을 확인했다.

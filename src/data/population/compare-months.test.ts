@@ -11,6 +11,12 @@ const month = (period: string, mean: string, status: "complete" | "incomplete" =
   errors: [],
   methodId: "official-hourly-mean-v1",
   methodStatus,
+  input: {
+    period, asOfDate: "2026-09-07", sourceId: "OA-23016", schemaVersion: "oa23016-hourly-v1", registry: null,
+    method: methodStatus === "verified"
+      ? { status: "verified", version: "official-hourly-mean-v1", evidenceIds: ["fixture-method-document"] }
+      : { status: "unverified", version: null, evidenceIds: [] },
+  },
   dongs: {
     "00123456": {
       dongCode: "00123456",
@@ -24,6 +30,33 @@ const month = (period: string, mean: string, status: "complete" | "incomplete" =
 });
 
 describe("compareMonths", () => {
+  it("does not trust legacy verified flags without the evidence contract", () => {
+    const current = month("202607", "150.000000");
+    delete current.input;
+    const [result] = compareMonths(current, month("202507", "100.000000"), month("202606", "120.000000"));
+    expect(result.reason).toBe("method_unverified");
+    expect(result.difference).toBeNull();
+  });
+  it("rejects empty evidence on a claimed verified method", () => {
+    const current = month("202607", "150.000000");
+    current.input!.method.evidenceIds = [];
+    const [result] = compareMonths(current, month("202507", "100.000000"), month("202606", "120.000000"));
+    expect(result.reason).toBe("method_unverified");
+  });
+  it("uses the validated method version instead of legacy duplicate fields", () => {
+    const prior = month("202507", "100.000000");
+    prior.input!.method.version = "different";
+    const [result] = compareMonths(month("202607", "150.000000"), prior, month("202606", "120.000000"));
+    expect(result.mode).toBe("previous_month");
+    expect(result.reasons).toContain("method_mismatch");
+  });
+  it("falls back only to a candidate with the same semantic schema", () => {
+    const prior = month("202507", "100.000000");
+    prior.input!.schemaVersion = "different";
+    const [result] = compareMonths(month("202607", "150.000000"), prior, month("202606", "120.000000"));
+    expect(result.mode).toBe("previous_month");
+    expect(result.reasons).toContain("schema_mismatch");
+  });
   it("keeps complete dongs comparable when another dong has missing slots", () => {
     const current = month("202607", "150.000000");
     const prior = month("202507", "100.000000");
@@ -52,7 +85,7 @@ describe("compareMonths", () => {
 
   it("retains both candidate failures", () => {
     const prior = month("202507", "100.000000");
-    prior.methodId = "different";
+    prior.input!.method.version = "different";
     const [result] = compareMonths(month("202607", "150.000000"), prior, month("202606", "120.000000", "incomplete"));
     expect(result.reasons).toEqual(["method_mismatch", "candidate_incomplete"]);
   });
