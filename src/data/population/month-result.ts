@@ -89,6 +89,7 @@ function parseDong(value: unknown, period: string): DongMonth {
   const item = record(value, DONG_FIELDS, "dong");
   if (typeof item.dongCode !== "string" || !/^\d{8}$/.test(item.dongCode)) throw new Error("invalid dong code");
   const expectedCount = integer(item.expectedCount, "expectedCount", 1);
+  if (expectedCount !== daysInMonth(period) * 24) throw new Error("invalid expected count");
   const observedCount = integer(item.observedCount, "observedCount");
   const missingCount = integer(item.missingCount, "missingCount");
   if (missingCount !== expectedCount - observedCount || observedCount > expectedCount) throw new Error("invalid dong counts");
@@ -99,9 +100,11 @@ function parseDong(value: unknown, period: string): DongMonth {
   if (typeof item.sumMicros !== "string" || !/^\d+$/.test(item.sumMicros)) throw new Error("invalid sumMicros");
   const status = item.status;
   if (status !== "complete" && status !== "incomplete") throw new Error("invalid dong status");
-  if (status === "complete" && (observedCount !== expectedCount || missingCount !== 0 || item.mean === null)) throw new Error("inconsistent complete dong");
+  if (status === "complete" && (observedCount !== expectedCount || missingCount !== 0 || item.mean === null || firstDate !== `${period}01` || lastDate !== `${period}${String(daysInMonth(period)).padStart(2, "0")}`)) throw new Error("inconsistent complete dong");
   if (status === "incomplete" && (missingCount === 0 || item.mean !== null)) throw new Error("inconsistent incomplete dong");
   if (observedCount === 0 && (firstDate !== null || lastDate !== null)) throw new Error("empty dong has dates");
+  if (observedCount === 0 && item.sumMicros !== "0") throw new Error("empty dong has sum");
+  if (observedCount > 0 && (firstDate === null || lastDate === null)) throw new Error("observed dong requires dates");
   if (item.mean !== null && (typeof item.mean !== "string" || !/^\d+\.\d{6}$/.test(item.mean) || item.mean !== formatMean(BigInt(item.sumMicros), observedCount))) throw new Error("invalid dong mean");
   return { dongCode: item.dongCode, expectedCount, observedCount, missingCount, missingRate: item.missingRate, firstDate, lastDate, sumMicros: item.sumMicros, mean: item.mean as string | null, status };
 }
@@ -115,6 +118,13 @@ export function parseMonthResult(value: unknown): MonthResult {
   const dongs = item.dongs.map(dong => parseDong(dong, input.period));
   if (dongs.some((dong, index) => index > 0 && dongs[index - 1].dongCode >= dong.dongCode)) throw new Error("dongs must be sorted and unique");
   const errors = parseErrors(item.errors);
+  if (item.status === "valid" && dongs.length === 0) throw new Error("valid result requires dongs");
+  if (item.status === "valid" && item.coverageStatus === "expected_registry" && input.registry === null) throw new Error("registry coverage requires registry");
+  if (item.status === "valid" && item.coverageStatus === "observed_only" && input.registry !== null) throw new Error("registry requires expected coverage");
+  if (item.status === "valid" && input.registry !== null) {
+    const activeCodes = input.registry.dongs.filter(dong => dong.validFrom <= `${input.period.slice(0, 4)}-${input.period.slice(4)}-${String(daysInMonth(input.period)).padStart(2, "0")}` && (dong.validToExclusive === null || dong.validToExclusive > `${input.period.slice(0, 4)}-${input.period.slice(4)}-01`)).map(dong => dong.code).sort();
+    if (activeCodes.join(",") !== dongs.map(dong => dong.dongCode).sort().join(",")) throw new Error("registry coverage mismatch");
+  }
   if (item.status === "invalid" && (dongs.length !== 0 || Object.values(errors.counts).reduce((sum, count) => sum + count, 0) < 1)) throw new Error("invalid result requires diagnostics");
   if (item.status === "valid" && Object.values(errors.counts).some(count => count > 0)) throw new Error("valid result cannot contain source errors");
   return { input, status: item.status, coverageStatus: item.coverageStatus, dongs, errors };
@@ -124,7 +134,7 @@ export function toMonthResult(month: MonthAggregation): MonthResult {
   if (!month.input || !month.coverageStatus) throw new Error("month aggregation is missing normalized input");
   const errors: MonthErrors = month.diagnostics ?? { counts: {}, samples: [] };
   if (month.status === "invalid") {
-    const counts = Object.keys(errors.counts).length ? errors.counts : { source_error: Math.max(1, month.errors.length) };
+    const counts = Object.keys(errors.counts).length ? errors.counts : (() => { throw new Error("invalid aggregation is missing diagnostics"); })();
     return { input: parseMonthInput(month.input), status: "invalid", coverageStatus: month.coverageStatus, dongs: [], errors: { counts, samples: errors.samples.slice(0, 20) } };
   }
   const expectedCount = month.expectedSlotsPerDong;
@@ -133,7 +143,8 @@ export function toMonthResult(month: MonthAggregation): MonthResult {
     missingRate: dong.missingRate ?? dong.missingSlots / expectedCount, firstDate: dong.firstDate ? dong.firstDate : null,
     lastDate: dong.lastDate ? dong.lastDate : null, sumMicros: dong.sumMicros.toString(), mean: dong.mean, status: dong.status,
   }));
-  return { input: parseMonthInput(month.input), status: "valid", coverageStatus: month.coverageStatus, dongs, errors: { counts: {}, samples: [] } };
+  const result: MonthResult = { input: parseMonthInput(month.input), status: "valid", coverageStatus: month.coverageStatus, dongs, errors: { counts: {}, samples: [] } };
+  return parseMonthResult(result);
 }
 
 export function fromMonthResult(result: MonthResult): MonthAggregation {

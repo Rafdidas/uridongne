@@ -17,7 +17,7 @@ const month = (): MonthAggregation => ({
   observedSlots: 1, errors: [], diagnostics: { counts: {}, samples: [] }, methodStatus: "unverified", input: { period: "202602", asOfDate: "2026-03-01", sourceId: "OA-23016", schemaVersion: "oa23016-hourly-v1",
     method: { status: "unverified", version: null, evidenceIds: [] }, registry: null }, coverageStatus: "observed_only",
   dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(123456789),
-    mean: null, missingSlots: 671, status: "incomplete", firstDate: null, lastDate: null, missingRate: 671 / 672 } },
+    mean: null, missingSlots: 671, status: "incomplete", firstDate: "20260201", lastDate: "20260201", missingRate: 671 / 672 } },
 });
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })));

@@ -48,9 +48,26 @@ describe("population MonthResult contract", () => {
     for (const value of cases) expect(() => parseMonthResult(value)).toThrow();
   });
 
+  it("rejects calendar-inconsistent counts and impossible observation dates", () => {
+    const result = toMonthResult(complete());
+    const cases = [
+      { ...result, dongs: [{ ...result.dongs[0], expectedCount: 1 }] },
+      { ...result, dongs: [{ ...result.dongs[0], firstDate: null, lastDate: null }] },
+      { ...result, dongs: [{ ...result.dongs[0], observedCount: 0, missingCount: 672, sumMicros: "1", mean: null, status: "incomplete" as const, firstDate: null, lastDate: null }] },
+    ];
+    for (const value of cases) expect(() => parseMonthResult(value)).toThrow();
+  });
+
+  it("requires expected registry codes to match the month result", () => {
+    const value = toMonthResult(complete());
+    value.input = { ...input, registry: { version: "registry-v1", evidenceIds: ["registry-doc"], dongs: [{ code: "00999999", validFrom: "2020-01-01", validToExclusive: null }] } };
+    value.coverageStatus = "expected_registry";
+    expect(() => parseMonthResult(value)).toThrow();
+  });
+
   it("requires invalid results to contain diagnostics and no dong results", () => {
-    const result = toMonthResult({ ...complete(), status: "invalid", dongs: {}, errors: ["bad row"] });
-    expect(result).toMatchObject({ status: "invalid", dongs: [], errors: { counts: { source_error: 1 } } });
+    const result = toMonthResult({ ...complete(), status: "invalid", dongs: {}, errors: ["bad row"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } });
+    expect(result).toMatchObject({ status: "invalid", dongs: [], errors: { counts: { duplicate_slot: 1 } } });
     expect(() => parseMonthResult({ ...result, errors: { counts: {}, samples: [] } })).toThrow();
   });
 });

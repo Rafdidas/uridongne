@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { writeNormalizationOutput } from "../../src/data/population/artifact-output";
 import type { MonthAggregation } from "../../src/data/population/aggregate-month";
-import { POPULATION_HEADERS } from "../../src/data/population/schema";
+import { daysInMonth, POPULATION_HEADERS } from "../../src/data/population/schema";
 
 const contractInput = (period = "202602") => ({
   period, asOfDate: "2026-09-07", sourceId: "OA-23016" as const, schemaVersion: "oa23016-hourly-v1",
@@ -104,12 +104,12 @@ describe("population CLI publication boundary", () => {
     const periods = ["202607", "202507", "202606"];
     for (let index = 0; index < dirs.length; index += 1) {
       const monthly: MonthAggregation = {
-        period: periods[index], status: "complete", expectedSlotsPerDong: 1, observedSlots: 1,
+        period: periods[index], status: "complete", expectedSlotsPerDong: daysInMonth(periods[index]) * 24, observedSlots: daysInMonth(periods[index]) * 24,
         errors: [], coverageStatus: "observed_only", methodId: "fixture", methodStatus: verified ? "verified" : "unverified",
         input: { ...contractInput(periods[index]),
           method: verified ? { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] }
             : { status: "unverified", version: null, evidenceIds: [] } },
-        dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(100000000), mean: "100.000000", missingSlots: 0, status: "complete", firstDate: `${periods[index]}01`, lastDate: `${periods[index]}01`, missingRate: 0 } },
+        dongs: { "00123456": { dongCode: "00123456", count: daysInMonth(periods[index]) * 24, sumMicros: BigInt(daysInMonth(periods[index]) * 24 * 100000000), mean: "100.000000", missingSlots: 0, status: "complete", firstDate: `${periods[index]}01`, lastDate: `${periods[index]}${String(daysInMonth(periods[index])).padStart(2, "0")}`, missingRate: 0 } },
       };
       await writeNormalizationOutput(dirs[index], monthly, {});
     }
