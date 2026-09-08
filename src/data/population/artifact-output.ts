@@ -9,7 +9,7 @@ import { fromMonthResult, parseMonthResult, toMonthResult, type MonthErrors, typ
 import { assertPopulationOutputPath } from "./output-path";
 import type { MonthInput, NormalizationContract } from "./types";
 
-export interface PopulationOutputOptions { workRoot?: string }
+export interface PopulationOutputOptions { workRoot: string }
 
 export type PopulationCandidateOutcome =
   | { kind: "success"; monthly: MonthAggregation }
@@ -69,9 +69,10 @@ function runMetadata(metadata: Record<string, unknown>, period: string, status: 
   };
 }
 
-export async function writeNormalizationOutput(outputDir: string, monthly: MonthAggregation, metadata: Record<string, unknown>, options: PopulationOutputOptions = {}): Promise<void> {
+export async function writeNormalizationOutput(outputDir: string, monthly: MonthAggregation, metadata: Record<string, unknown>, options?: PopulationOutputOptions): Promise<void> {
   const normalizedMetadata = normalizationMetadata(metadata, monthly);
-  const validatedOutputDir = options.workRoot ? await assertPopulationOutputPath(outputDir, options.workRoot) : outputDir;
+  if (!options?.workRoot) throw new Error("population work root is required");
+  const validatedOutputDir = await assertPopulationOutputPath(outputDir, options.workRoot);
   outputDir = validatedOutputDir;
   const parent = path.dirname(outputDir);
   const staging = await createStaging(outputDir);
@@ -108,8 +109,9 @@ export async function writeNormalizationOutput(outputDir: string, monthly: Month
   }
 }
 
-export async function writeComparisonOutput(outputDir: string, comparison: unknown, metadata: Record<string, unknown> = {}, options: PopulationOutputOptions = {}): Promise<void> {
-  const validatedOutputDir = options.workRoot ? await assertPopulationOutputPath(outputDir, options.workRoot) : outputDir;
+export async function writeComparisonOutput(outputDir: string, comparison: unknown, metadata: Record<string, unknown> = {}, options?: PopulationOutputOptions): Promise<void> {
+  if (!options?.workRoot) throw new Error("population work root is required");
+  const validatedOutputDir = await assertPopulationOutputPath(outputDir, options.workRoot);
   outputDir = validatedOutputDir;
   const parent = path.dirname(outputDir);
   const staging = await createStaging(outputDir);
@@ -153,6 +155,7 @@ async function readSuccess(outputDir: string): Promise<MonthResult> {
 }
 
 export async function readMonthlyOutput(outputDir: string): Promise<MonthAggregation> {
+  if (await exists(path.join(outputDir, "failure.json"))) throw new Error("population output has both complete and failure markers");
   return fromMonthResult(await readSuccess(outputDir));
 }
 

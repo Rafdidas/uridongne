@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -23,5 +23,13 @@ describe("population output path", () => {
     directories.push(parent);
     const root = path.join(parent, "data", "work");
     expect(await assertPopulationOutputPath(path.join(root, "run"), root)).toBe(path.join(root, "run"));
+  });
+
+  it("rejects an output path reached through a symbolic link", async () => {
+    const root = await mkdtemp(path.join(tmpdir(), "population-work-"));
+    const outside = await mkdtemp(path.join(tmpdir(), "population-outside-"));
+    directories.push(root, outside);
+    await symlink(outside, path.join(root, "linked"), "junction");
+    await expect(assertPopulationOutputPath(path.join(root, "linked", "result"), root)).rejects.toThrow(/link|escapes/);
   });
 });

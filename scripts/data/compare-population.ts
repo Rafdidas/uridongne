@@ -11,7 +11,7 @@ async function main(): Promise<void> {
   let args: Record<string, string>;
   let changes: ReturnType<typeof parseAreaChanges>;
   try {
-    args = parseNamedArgs(argv[0] === "--" ? argv.slice(1) : argv, ["current-dir", "previous-year-dir", "previous-month-dir", "changes", "output-dir", "work-root"]);
+    args = parseNamedArgs(argv[0] === "--" ? argv.slice(1) : argv, ["current-dir", "previous-year-dir", "previous-month-dir", "changes", "output-dir"], ["work-root"]);
     changes = parseAreaChanges(JSON.parse(await readFile(args.changes, "utf8")));
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

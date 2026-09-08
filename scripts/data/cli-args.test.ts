@@ -14,4 +14,9 @@ describe("parseNamedArgs", () => {
       "Repeated argument: --kind",
     );
   });
+
+  it("accepts declared optional arguments without making them required", () => {
+    expect(parseNamedArgs(["--input", "source.csv"], ["input"], ["work-root"])).toEqual({ input: "source.csv" });
+    expect(parseNamedArgs(["--input", "source.csv", "--work-root", "data/work"], ["input"], ["work-root"])).toEqual({ input: "source.csv", "work-root": "data/work" });
+  });
 });

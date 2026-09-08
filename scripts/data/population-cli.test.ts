@@ -126,7 +126,7 @@ describe("population CLI publication boundary", () => {
             : { status: "unverified", version: null, evidenceIds: [] } },
         dongs: { "00123456": { dongCode: "00123456", count: daysInMonth(periods[index]) * 24, sumMicros: BigInt(daysInMonth(periods[index]) * 24 * 100000000), mean: "100.000000", missingSlots: 0, status: "complete", firstDate: `${periods[index]}01`, lastDate: `${periods[index]}${String(daysInMonth(periods[index])).padStart(2, "0")}`, missingRate: 0 } },
       };
-      await writeNormalizationOutput(dirs[index], monthly, outputMetadata(periods[index], verified));
+      await writeNormalizationOutput(dirs[index], monthly, outputMetadata(periods[index], verified), { workRoot: directory });
     }
     const changes = path.join(directory, "changes.json");
     await writeFile(changes, "[]");
@@ -148,9 +148,9 @@ describe("population CLI publication boundary", () => {
       input: { ...contractInput(period), method: { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] } },
       dongs: { "00123456": { dongCode: "00123456", count: daysInMonth(period) * 24, sumMicros: BigInt(daysInMonth(period) * 24) * BigInt(Math.round(Number(mean) * 1_000_000)), mean, missingSlots: 0, status: "complete", firstDate: `${period}01`, lastDate: `${period}${String(daysInMonth(period)).padStart(2, "0")}`, missingRate: 0 } },
     });
-    await writeNormalizationOutput(currentDir, complete("202607", "150.000000"), outputMetadata("202607", true));
-    await writeNormalizationOutput(previousMonthDir, complete("202606", "120.000000"), outputMetadata("202606", true));
-    await writeNormalizationOutput(previousYearDir, { ...complete("202507", "100.000000"), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, outputMetadata("202507", true));
+    await writeNormalizationOutput(currentDir, complete("202607", "150.000000"), outputMetadata("202607", true), { workRoot: directory });
+    await writeNormalizationOutput(previousMonthDir, complete("202606", "120.000000"), outputMetadata("202606", true), { workRoot: directory });
+    await writeNormalizationOutput(previousYearDir, { ...complete("202507", "100.000000"), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, outputMetadata("202507", true), { workRoot: directory });
     const changes = path.join(directory, "changes.json"), output = path.join(directory, "comparison");
     await writeFile(changes, "[]");
     expect(await run("compare-population.ts", ["--current-dir", currentDir, "--previous-year-dir", previousYearDir, "--previous-month-dir", previousMonthDir, "--changes", changes, "--output-dir", output, "--work-root", directory])).toBe(0);

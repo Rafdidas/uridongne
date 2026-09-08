@@ -1,4 +1,4 @@
-export function parseNamedArgs(argv: string[], required: readonly string[]): Record<string, string> {
+export function parseNamedArgs(argv: string[], required: readonly string[], optional: readonly string[] = []): Record<string, string> {
   const values: Record<string, string> = {};
 
   for (let index = 0; index < argv.length; index += 2) {
@@ -18,7 +18,8 @@ export function parseNamedArgs(argv: string[], required: readonly string[]): Rec
     if (values[name] === undefined) throw new Error(`Missing argument: --${name}`);
   }
 
-  const unknown = Object.keys(values).filter((name) => !required.includes(name));
+  const allowed = new Set([...required, ...optional]);
+  const unknown = Object.keys(values).filter((name) => !allowed.has(name));
   if (unknown.length > 0) throw new Error(`Unknown arguments: ${unknown.join(", ")}`);
 
   return values;

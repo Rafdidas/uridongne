@@ -20,6 +20,8 @@ const month = (): MonthAggregation => ({
     mean: null, missingSlots: 671, status: "incomplete", firstDate: "20260201", lastDate: "20260201", missingRate: 671 / 672 } },
 });
 const metadata = () => ({ sourceSha256: "a".repeat(64), contract: { ...month().input!, expectedSha256: "a".repeat(64) } });
+const publish = (output: string, monthly: MonthAggregation, runMetadata: Record<string, unknown> = metadata()) =>
+  writeNormalizationOutput(output, monthly, runMetadata, { workRoot: path.dirname(output) });
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })));
 });
@@ -27,7 +29,7 @@ afterEach(async () => {
 describe("population artifact publication", () => {
   it("round trips a leading-zero code and exact sums", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), metadata());
+    await publish(output, month());
     expect(await readMonthlyOutput(output)).toEqual(month());
   });
 
@@ -37,22 +39,26 @@ describe("population artifact publication", () => {
     await expect(writeNormalizationOutput(output, month(), { ...metadata(), sourceSha256: "b".repeat(64) })).rejects.toThrow(/contract/);
   });
 
+  it("requires an explicit work root for every publication", async () => {
+    await expect(writeNormalizationOutput(await target(), month(), metadata())).rejects.toThrow(/work root/);
+  });
+
   it("keeps invalid runs diagnostic-only without a completion marker", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
+    await publish(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } });
     expect((await readdir(output)).sort()).toEqual(["errors.json", "failure.json", "run.json"]);
     await expect(readMonthlyOutput(output)).rejects.toThrow();
   });
 
   it("reads an explicitly failed candidate without treating missing completion as failure", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
+    await publish(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } });
     await expect(readCandidateOutcome(output)).resolves.toMatchObject({ kind: "invalid", period: "202602" });
   });
 
   it("rejects a failure directory with mismatched diagnostics", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } }, metadata());
+    await publish(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } });
     await writeFile(path.join(output, "errors.json"), JSON.stringify({ period: "202601", errors: ["wrong period"], diagnostics: { counts: { source_error: 1 }, samples: [] } }));
     await expect(readCandidateOutcome(output)).rejects.toThrow(/hash mismatch/);
   });
@@ -60,8 +66,8 @@ describe("population artifact publication", () => {
   it("keeps the content manifest stable when run metadata changes", async () => {
     const first = await target();
     const second = await target();
-    await writeNormalizationOutput(first, month(), { ...metadata(), startedAt: "2026-09-07T00:00:00Z" });
-    await writeNormalizationOutput(second, month(), { ...metadata(), startedAt: "2026-09-07T00:01:00Z" });
+    await publish(first, month(), { ...metadata(), startedAt: "2026-09-07T00:00:00Z" });
+    await publish(second, month(), { ...metadata(), startedAt: "2026-09-07T00:01:00Z" });
     expect(JSON.parse(await readFile(path.join(first, "manifest.json"), "utf8"))).toMatchObject({ formatVersion: 2, kind: "population-normalization" });
     expect(await readFile(path.join(first, "manifest.json"), "utf8")).toBe(await readFile(path.join(second, "manifest.json"), "utf8"));
     expect(await readMonthlyOutput(first)).toEqual(month());
@@ -70,23 +76,23 @@ describe("population artifact publication", () => {
 
   it("rejects changed run metadata even when monthly data is intact", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), metadata());
+    await publish(output, month());
     await writeFile(path.join(output, "run.json"), "{}\n");
     await expect(readMonthlyOutput(output)).rejects.toThrow(/hash mismatch/);
   });
 
   it("rejects changed monthly data", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), metadata());
+    await publish(output, month());
     await writeFile(path.join(output, "monthly.json"), "{}\n");
     await expect(readMonthlyOutput(output)).rejects.toThrow(/hash mismatch/);
   });
 
   it("preserves existing outputs and cleans its own staging directory", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), metadata());
+    await publish(output, month());
     const before = await readFile(path.join(output, "complete.json"), "utf8");
-    await expect(writeNormalizationOutput(output, month(), { ...metadata(), replacement: true })).rejects.toThrow();
+    await expect(publish(output, month(), { ...metadata(), replacement: true })).rejects.toThrow();
     expect(await readFile(path.join(output, "complete.json"), "utf8")).toBe(before);
     expect(await readdir(path.dirname(output))).toEqual(["result"]);
   });
@@ -94,8 +100,8 @@ describe("population artifact publication", () => {
   it("allows exactly one concurrent writer to publish an output", async () => {
     const output = await target();
     const results = await Promise.allSettled([
-      writeNormalizationOutput(output, month(), metadata()),
-      writeNormalizationOutput(output, month(), metadata()),
+      publish(output, month()),
+      publish(output, month()),
     ]);
     expect(results.filter(result => result.status === "fulfilled")).toHaveLength(1);
     expect(await readdir(output)).toContain("complete.json");
@@ -104,9 +110,10 @@ describe("population artifact publication", () => {
 
   it("rejects a directory containing both success and failure markers", async () => {
     const output = await target();
-    await writeNormalizationOutput(output, month(), metadata());
+    await publish(output, month());
     await writeFile(path.join(output, "failure.json"), JSON.stringify({ formatVersion: 2, kind: "population-normalization-failure", errorsSha256: "a".repeat(64), runSha256: "b".repeat(64) }));
     await expect(readCandidateOutcome(output)).rejects.toThrow(/both/);
+    await expect(readMonthlyOutput(output)).rejects.toThrow(/both/);
   });
 
   it("rejects a legacy output without a versioned marker", async () => {

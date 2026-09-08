@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -152,15 +152,32 @@ export async function* readPopulationRows(inputPath: string,
   overrides: Partial<PopulationReadLimits> = {},
 ): AsyncGenerator<LocatedRow> {
   try {
-    const declaredSize = (await stat(inputPath)).size;
-    const archiveLimit = overrides.archiveBytes ?? POPULATION_READ_LIMITS.archiveBytes;
-    if (!Number.isSafeInteger(archiveLimit) || archiveLimit <= 0) throw new Error("invalid population read limits");
-    if (declaredSize > archiveLimit) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
-    const inputBytes = await readFile(inputPath);
-    if (inputBytes.byteLength > archiveLimit) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
+    const inputBytes = await readPopulationBytes(inputPath, overrides);
     yield* readPopulationRowsFromBytes(inputBytes, inputPath, onEntry, overrides);
   } catch (error) {
     if (error instanceof PopulationSourceError) throw error;
     throw new PopulationSourceError("source_read_error", "unable to read population source", inputPath);
+  }
+}
+
+export async function readPopulationBytes(inputPath: string, overrides: Partial<PopulationReadLimits> = {}): Promise<Buffer> {
+  const limits = { ...POPULATION_READ_LIMITS, ...overrides };
+  if (Object.values(limits).some(limit => !Number.isSafeInteger(limit) || limit <= 0)) throw new Error("invalid population read limits");
+  const handle = await open(inputPath, "r");
+  try {
+    if ((await handle.stat()).size > limits.archiveBytes) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
+    const parts: Buffer[] = [];
+    let length = 0;
+    const chunk = Buffer.allocUnsafe(Math.min(64 * 1024, limits.archiveBytes));
+    while (true) {
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, null);
+      if (bytesRead === 0) break;
+      length += bytesRead;
+      if (length > limits.archiveBytes) throw new PopulationSourceError("archive_limit", "population archive exceeds limit", inputPath);
+      parts.push(Buffer.from(chunk.subarray(0, bytesRead)));
+    }
+    return Buffer.concat(parts, length);
+  } finally {
+    await handle.close();
   }
 }
