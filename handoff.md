@@ -23,12 +23,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 고정 snapshot 구성·공개 조회 repository 구현 완료. 다음은 공개 DTO·API 계약과 남은 입력 경계 보완 |
+| 작업 단계 | 공개 population DTO·고정 overview 조회 구현 완료. 다음은 HTTP API 계약과 남은 입력 경계 보완 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-08 고정 snapshot 조회 구현 후 테스트 159개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
+| 앱 빌드·테스트 | 2026-09-08 공개 DTO 구현 후 테스트 161개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
@@ -174,6 +174,12 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — 공개 population DTO·고정 overview 조회
+
+- 내부 비교 결과와 화면/API 전달 값을 분리하는 `toPublicPopulation` DTO 변환을 추가했다. method unverified 또는 현재 월 incomplete이면 내부 값이 있어도 currentMean·previousMean·difference·percentChange를 null로 만들고 reasonCodes만 반환한다.
+- `publishedPopulationOverview`는 공개 채널의 고정 snapshot 구성원에서 current version·dong·comparison을 읽고, 저장된 month input의 method 계약을 다시 검증해 공개 DTO로 조합한다.
+- 단위·통합 회귀로 unverified 수치 차단과 verified 전년 동월 값 노출을 검증했다. 전체 테스트 24개 파일·161개, lint·typecheck·diff 검사를 통과했다. HTTP API route, registry 기반 404/검색, 실패 후보 참조와 입력 경계 보완은 아직 남았으며 push하지 않는다.
 
 ### 2026-09-08 — 고정 snapshot 구성·공개 조회 repository
 

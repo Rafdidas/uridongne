@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { compareMonths } from "../population/compare-months";
 import { parseMonthInput } from "../population/contract";
 import type { MonthAggregation } from "../population/aggregate-month";
+import { toPublicPopulation, type PublicPopulation, type PublicPopulationInput } from "./public-population";
 
 interface SqlStatement {
   get(...parameters: unknown[]): unknown;
@@ -292,6 +293,34 @@ export class SnapshotRepository {
     `).get(channelName));
     if (!value || typeof value.snapshot_id !== "string" || typeof value.generation !== "number" || typeof value.current_version_id !== "string" || typeof value.previous_year_version_id !== "string" || typeof value.previous_month_version_id !== "string" || typeof value.comparison_set_id !== "string") return undefined;
     return { snapshotId: value.snapshot_id, generation: value.generation, currentVersionId: value.current_version_id, previousYearVersionId: value.previous_year_version_id, previousMonthVersionId: value.previous_month_version_id, comparisonSetId: value.comparison_set_id };
+  }
+
+  publishedPopulationOverview(channelName: string, dongCode: string): PublicPopulation | undefined {
+    const published = this.publishedPopulation(channelName);
+    if (!published) return undefined;
+    const dong = this.populationDong(published.currentVersionId, dongCode);
+    const version = row(this.database.prepare("SELECT v.input_json, a.period FROM population_versions v JOIN source_artifacts a ON a.id = v.artifact_id WHERE v.id = ? AND v.state = 'ready'").get(published.currentVersionId));
+    const comparison = this.comparison(published.comparisonSetId, dongCode);
+    if (!dong || !version || typeof version.input_json !== "string" || typeof version.period !== "string" || !comparison || typeof dong.mean !== "string" && dong.mean !== null || (dong.status !== "complete" && dong.status !== "incomplete")) return undefined;
+    const input = parseMonthInput(JSON.parse(version.input_json));
+    const candidateFailures = Array.isArray(comparison.candidateFailures) ? comparison.candidateFailures.filter((item): item is { period: string; reasons: string[] } => Boolean(item) && typeof item === "object" && typeof (item as { period?: unknown }).period === "string" && Array.isArray((item as { reasons?: unknown }).reasons) && (item as { reasons: unknown[] }).reasons.every(reason => typeof reason === "string")) : [];
+    const publicInput: PublicPopulationInput = {
+      snapshotId: published.snapshotId,
+      currentPeriod: version.period,
+      current: { mean: dong.mean, status: dong.status, methodStatus: input.method.status },
+      comparison: {
+        mode: comparison.mode === "same_month_previous_year" || comparison.mode === "previous_month" ? comparison.mode : "unavailable",
+        currentValue: typeof comparison.currentValue === "string" ? comparison.currentValue : null,
+        candidateValue: typeof comparison.candidateValue === "string" ? comparison.candidateValue : null,
+        difference: typeof comparison.difference === "string" ? comparison.difference : null,
+        percent: typeof comparison.percent === "string" ? comparison.percent : null,
+        reason: typeof comparison.reason === "string" ? comparison.reason : null,
+        reasons: Array.isArray(comparison.reasons) ? comparison.reasons.filter((reason): reason is string => typeof reason === "string") : [],
+        comparisonPeriod: typeof comparison.comparisonPeriod === "string" ? comparison.comparisonPeriod : null,
+        candidateFailures,
+      },
+    };
+    return toPublicPopulation(publicInput);
   }
 
   private readyMonth(versionId: string): MonthAggregation {

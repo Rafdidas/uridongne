@@ -137,5 +137,6 @@ describe("SnapshotRepository", () => {
     store.publish({ channel: "production", expectedGeneration: 0, snapshotId: "snapshot-202607", operationId: "operation-202607", reason: "validated import" });
 
     expect(store.publishedPopulation("production")).toEqual({ snapshotId: "snapshot-202607", generation: 1, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607" });
+    expect(store.publishedPopulationOverview("production", "00123456")).toMatchObject({ status: "available", snapshotId: "snapshot-202607", currentMean: "150.000000", comparisonPeriod: "202507", difference: "50.000000" });
   });
 });
