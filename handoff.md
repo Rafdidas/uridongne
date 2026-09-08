@@ -23,12 +23,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | D1 착수 전 계약 보완 2차 구현 중: 제한 길이 단일 handle 읽기·필수 workRoot·심볼릭 링크 경로·CLI 기본값을 보강했고 최종 전체 검증 및 로컬 커밋 대기 |
+| 작업 단계 | D1 착수 전 계약 보완 및 새 계약 실원본 재인수 완료. 다음은 설계 모델로 D1 저장·공개 포인터 구조를 검토하는 단계 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-08 공개 전 검증 보완 후 테스트 140개, lint·typecheck·Next build 통과 |
+| 앱 빌드·테스트 | 2026-09-08 공개 전 검증 보완 후 테스트 148개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
@@ -172,6 +172,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — 새 계약 실원본 재인수
+
+- 최신 경계 검증이 적용된 정규화 CLI로 보존 원본 ZIP 202507·202606·202607을 각각 `data/work/population-*-contract5`에 재처리했다. 모두 source hash·계약·reader 재검증을 통과했다.
+- 결과는 동 수 426/427/427, 관측 슬롯 316,944/307,440/317,688, 누락 슬롯 0이며, 각 `monthly.json`은 직전 v2 재현 산출물과 바이트 해시가 같다.
+- 비교 산출물도 직전 v2와 본문 해시가 같고, 428건 모두 unavailable이다. 사유는 method_unverified 425, administrative_area_unverified 2, current_incomplete 1이며 CLI 종료 코드 2는 이 공개 불가 상태를 알리는 예상 결과다.
+- work 산출물은 Git 제외 대상이며 저장소 코드 변경은 없다. 인계 기록만 로컬 커밋으로 남기고 push하지 않는다.
 
 ### 2026-09-08 — 계약 보완 2차 구현
 
