@@ -23,12 +23,12 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | population version·comparison set 로컬 적재 완료. 다음은 snapshot 구성 고정과 공개용 고정 snapshot 조회 repository 구현 |
+| 작업 단계 | 고정 snapshot 구성·공개 조회 repository 구현 완료. 다음은 공개 DTO·API 계약과 남은 입력 경계 보완 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-08 D1 로컬 적재 구현 후 테스트 158개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
+| 앱 빌드·테스트 | 2026-09-08 고정 snapshot 조회 구현 후 테스트 159개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
@@ -174,6 +174,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — 고정 snapshot 구성·공개 조회 repository
+
+- `0004_snapshot_members.sql`에 현재·전년·전월 population version과 comparison set 참조를 역할별로 고정하는 테이블을 추가했다. 하나의 역할은 version 또는 comparison set 한 가지만 참조하도록 CHECK 제약을 뒀다.
+- `assemblePopulationSnapshot`은 comparison set이 세 version을 정확히 참조하고 모든 version이 ready인지 확인한 뒤 members와 validation report를 한 트랜잭션으로 validated snapshot에 고정한다.
+- `publishedPopulation`은 channel 포인터와 네 구성원을 한 조회에서 반환한다. 따라서 다음 요청이 시작하기 전 공개 포인터가 교체되어도 이미 얻은 snapshot ID로 조회를 고정할 수 있다.
+- 메모리 SQLite로 구성·공개·고정 조회를 검증했고 실제 마이그레이션 0001→0004로 8개 테이블 생성을 확인했다. 전체 테스트 23개 파일·159개, lint·typecheck·diff 검사를 통과했다. 공개 DTO/API, 실패 후보 참조, 엄격한 limit+1 읽기와 역순 회귀는 아직 남았으며 push하지 않는다.
 
 ### 2026-09-08 — population version·comparison set 로컬 적재
 

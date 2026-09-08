@@ -124,4 +124,18 @@ describe("SnapshotRepository", () => {
 
     expect(store.comparison("comparison-202607", "00123456")).toMatchObject({ mode: "same_month_previous_year", comparisonPeriod: "202507", difference: "50.000000" });
   });
+
+  it("publishes and reads one fixed population snapshot", () => {
+    const store = repository();
+    store.migrate();
+    store.ingestPopulationVersion(versionInput("version-current", "202607", "150.000000"));
+    store.ingestPopulationVersion(versionInput("version-year", "202507", "100.000000"));
+    store.ingestPopulationVersion(versionInput("version-month", "202606", "120.000000"));
+    store.createComparisonSet({ id: "comparison-202607", currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", changes: [], policyVersion: "population-comparison-v2" });
+
+    store.assemblePopulationSnapshot({ id: "snapshot-202607", contentHash: "a".repeat(64), validationReportHash: "b".repeat(64), publicationEligible: true, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607" });
+    store.publish({ channel: "production", expectedGeneration: 0, snapshotId: "snapshot-202607", operationId: "operation-202607", reason: "validated import" });
+
+    expect(store.publishedPopulation("production")).toEqual({ snapshotId: "snapshot-202607", generation: 1, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607" });
+  });
 });

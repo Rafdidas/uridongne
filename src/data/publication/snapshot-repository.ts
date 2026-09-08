@@ -63,6 +63,23 @@ export interface ComparisonSetInput {
   policyVersion: string;
 }
 
+export interface PopulationSnapshotInput extends CreateSnapshot {
+  validationReportHash: string;
+  currentVersionId: string;
+  previousYearVersionId: string;
+  previousMonthVersionId: string;
+  comparisonSetId: string;
+}
+
+export interface PublishedPopulationSnapshot {
+  snapshotId: string;
+  generation: number;
+  currentVersionId: string;
+  previousYearVersionId: string;
+  previousMonthVersionId: string;
+  comparisonSetId: string;
+}
+
 const schema = `
   CREATE TABLE IF NOT EXISTS snapshots (
     id TEXT PRIMARY KEY,
@@ -142,6 +159,17 @@ const comparisonSchema = `
   );
 `;
 
+const snapshotMemberSchema = `
+  CREATE TABLE IF NOT EXISTS snapshot_members (
+    snapshot_id TEXT NOT NULL REFERENCES snapshots(id),
+    role TEXT NOT NULL CHECK (role IN ('current', 'previous_year', 'previous_month', 'comparison')),
+    population_version_id TEXT REFERENCES population_versions(id),
+    comparison_set_id TEXT REFERENCES comparison_sets(id),
+    PRIMARY KEY (snapshot_id, role),
+    CHECK ((population_version_id IS NOT NULL) != (comparison_set_id IS NOT NULL))
+  );
+`;
+
 function row(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown> | undefined;
 }
@@ -157,6 +185,7 @@ export class SnapshotRepository {
     this.database.exec(schema);
     this.database.exec(populationSchema);
     this.database.exec(comparisonSchema);
+    this.database.exec(snapshotMemberSchema);
   }
 
   ingestPopulationVersion(input: PopulationVersionInput): void {
@@ -227,6 +256,42 @@ export class SnapshotRepository {
   comparison(comparisonSetId: string, dongCode: string): Record<string, unknown> | undefined {
     const value = row(this.database.prepare("SELECT result_json FROM population_comparisons WHERE comparison_set_id = ? AND dong_code = ?").get(comparisonSetId, dongCode));
     return typeof value?.result_json === "string" ? JSON.parse(value.result_json) as Record<string, unknown> : undefined;
+  }
+
+  assemblePopulationSnapshot(input: PopulationSnapshotInput): void {
+    if (!/^[a-f0-9]{64}$/i.test(input.validationReportHash)) throw new Error("validation report hash is invalid");
+    const operation = this.database.transaction(() => {
+      this.createSnapshot(input);
+      const set = row(this.database.prepare("SELECT current_version_id, previous_year_version_id, previous_month_version_id FROM comparison_sets WHERE id = ?").get(input.comparisonSetId));
+      if (!set || set.current_version_id !== input.currentVersionId || set.previous_year_version_id !== input.previousYearVersionId || set.previous_month_version_id !== input.previousMonthVersionId) throw new Error("comparison set does not match snapshot members");
+      for (const versionId of [input.currentVersionId, input.previousYearVersionId, input.previousMonthVersionId]) {
+        const version = row(this.database.prepare("SELECT state FROM population_versions WHERE id = ?").get(versionId));
+        if (!version || version.state !== "ready") throw new Error("snapshot requires ready population versions");
+      }
+      const insert = this.database.prepare("INSERT INTO snapshot_members (snapshot_id, role, population_version_id, comparison_set_id) VALUES (?, ?, ?, ?)");
+      insert.run(input.id, "current", input.currentVersionId, null);
+      insert.run(input.id, "previous_year", input.previousYearVersionId, null);
+      insert.run(input.id, "previous_month", input.previousMonthVersionId, null);
+      insert.run(input.id, "comparison", null, input.comparisonSetId);
+      const validated = this.database.prepare("UPDATE snapshots SET state = 'validated', validation_report_hash = ? WHERE id = ? AND state = 'building'").run(input.validationReportHash.toLowerCase(), input.id);
+      if (validated.changes !== 1) throw new PublicationConflictError("snapshot cannot be validated");
+    });
+    operation();
+  }
+
+  publishedPopulation(channelName: string): PublishedPopulationSnapshot | undefined {
+    validIdentifier(channelName, "channel");
+    const value = row(this.database.prepare(`
+      SELECT c.snapshot_id, c.generation,
+        MAX(CASE WHEN m.role = 'current' THEN m.population_version_id END) AS current_version_id,
+        MAX(CASE WHEN m.role = 'previous_year' THEN m.population_version_id END) AS previous_year_version_id,
+        MAX(CASE WHEN m.role = 'previous_month' THEN m.population_version_id END) AS previous_month_version_id,
+        MAX(CASE WHEN m.role = 'comparison' THEN m.comparison_set_id END) AS comparison_set_id
+      FROM public_channels c JOIN snapshot_members m ON m.snapshot_id = c.snapshot_id
+      WHERE c.name = ? GROUP BY c.snapshot_id, c.generation
+    `).get(channelName));
+    if (!value || typeof value.snapshot_id !== "string" || typeof value.generation !== "number" || typeof value.current_version_id !== "string" || typeof value.previous_year_version_id !== "string" || typeof value.previous_month_version_id !== "string" || typeof value.comparison_set_id !== "string") return undefined;
+    return { snapshotId: value.snapshot_id, generation: value.generation, currentVersionId: value.current_version_id, previousYearVersionId: value.previous_year_version_id, previousMonthVersionId: value.previous_month_version_id, comparisonSetId: value.comparison_set_id };
   }
 
   private readyMonth(versionId: string): MonthAggregation {
