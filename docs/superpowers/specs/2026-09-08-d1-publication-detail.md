@@ -74,4 +74,6 @@ SQL 외래키·CHECK와 런타임 검증을 함께 사용한다. 비교 후보�
 
 ## 구현 진행 기록
 
-2026-09-08 구현용 모델에서 `migrations/0001_population_snapshots.sql`과 `SnapshotRepository`의 첫 단위를 추가했다. 로컬 SQLite로 snapshots, public_channels, publication_events를 실제 실행한다. validated와 publication_eligible을 모두 확인한 뒤 expected_generation 조건으로 포인터를 교체하며, 같은 operation_id는 같은 채널·세대·스냅샷·사유의 재시도만 허용한다. 스키마 SQL은 메모리 SQLite 실행으로 확인했고 repository는 최초 공개, stale writer, 공개 부적격, 멱등 재시도를 회귀 검증했다. population version·comparison set 적재와 조회 repository는 아직 구현하지 않았다.
+2026-09-08 구현용 모델에서 `migrations/0001_population_snapshots.sql`과 `SnapshotRepository`의 첫 단위를 추가했다. 로컬 SQLite로 snapshots, public_channels, publication_events를 실제 실행한다. validated와 publication_eligible을 모두 확인한 뒤 expected_generation 조건으로 포인터를 교체하며, 같은 operation_id는 같은 채널·세대·스냅샷·사유의 재시도만 허용한다. 스키마 SQL은 메모리 SQLite 실행으로 확인했고 repository는 최초 공개, stale writer, 공개 부적격, 멱등 재시도를 회귀 검증했다.
+
+같은 날 `0002_population_versions.sql`·`0003_population_comparisons.sql`과 version importer를 추가했다. invalid 결과는 version으로 적재하지 않으며, source artifact·계약·처리·출력 해시와 동별 TEXT sumMicros를 보존한다. comparison set은 저장된 세 ready version을 복원해 compareMonths로 재계산한다. 메모리 SQLite의 0001→0003 순차 마이그레이션과 멱등 version 적재, 전년 동월 비교를 검증했다. snapshot member 고정과 조회 repository, 실패 후보 참조는 아직 구현하지 않았다.

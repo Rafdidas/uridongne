@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PublicationConflictError, SnapshotRepository } from "./snapshot-repository";
+import type { MonthAggregation } from "../population/aggregate-month";
 
 const databases: Database.Database[] = [];
 function repository() {
@@ -9,6 +10,23 @@ function repository() {
   database.pragma("foreign_keys = ON");
   databases.push(database);
   return new SnapshotRepository(database);
+}
+function monthly(): MonthAggregation {
+  return {
+    period: "202607", status: "complete", expectedSlotsPerDong: 744, observedSlots: 744, errors: [], coverageStatus: "observed_only",
+    input: { period: "202607", asOfDate: "2026-09-07", sourceId: "OA-23016", schemaVersion: "oa23016-hourly-v1", method: { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] }, registry: null },
+    dongs: { "00123456": { dongCode: "00123456", count: 744, sumMicros: BigInt("999999999999999999"), mean: "1344086021505376.342742", missingSlots: 0, status: "complete", firstDate: "20260701", lastDate: "20260731", missingRate: 0 } },
+  };
+}
+function versionInput(id: string, period: string, mean = "100.000000") {
+  const value = monthly();
+  value.period = period;
+  value.input = { ...value.input!, period };
+  const dong = value.dongs["00123456"];
+  dong.mean = mean;
+  dong.sumMicros = BigInt(Math.round(Number(mean) * 1_000_000)) * BigInt(dong.count);
+  const marker = id === "version-current" ? "a" : id === "version-year" ? "b" : "c";
+  return { id, artifactId: `source-${id}`, sourceSha256: marker.repeat(64), sourceByteLength: 100, contractHash: "d".repeat(64), processorVersion: "normalizer-v2", outputHash: marker.repeat(64), monthly: value };
 }
 afterEach(() => { for (const database of databases.splice(0)) database.close(); });
 
@@ -65,5 +83,45 @@ describe("SnapshotRepository", () => {
     store.publish({ channel: "production", expectedGeneration: 0, snapshotId: "snapshot-a", operationId: "operation-a", reason: "initial" });
 
     expect(() => store.publish({ channel: "production", expectedGeneration: 1, snapshotId: "snapshot-a", operationId: "operation-a", reason: "initial" })).toThrow(PublicationConflictError);
+  });
+
+  it("stores a ready population version with an exact integer sum", () => {
+    const store = repository();
+    store.migrate();
+
+    store.ingestPopulationVersion({ id: "population-v1", artifactId: "source-v1", sourceSha256: "a".repeat(64), sourceByteLength: 100, contractHash: "b".repeat(64), processorVersion: "normalizer-v2", outputHash: "c".repeat(64), monthly: monthly() });
+
+    expect(store.populationVersion("population-v1")).toMatchObject({ id: "population-v1", state: "ready", period: "202607", sourceSha256: "a".repeat(64) });
+    expect(store.populationDong("population-v1", "00123456")).toMatchObject({ count: 744, sumMicros: "999999999999999999", mean: "1344086021505376.342742" });
+  });
+
+  it("refuses invalid monthly results as population versions", () => {
+    const store = repository();
+    store.migrate();
+    const invalid = { ...monthly(), status: "invalid" as const, dongs: {} };
+
+    expect(() => store.ingestPopulationVersion({ id: "population-invalid", artifactId: "source-invalid", sourceSha256: "a".repeat(64), sourceByteLength: 100, contractHash: "b".repeat(64), processorVersion: "normalizer-v2", outputHash: "c".repeat(64), monthly: invalid })).toThrow(/valid/);
+  });
+
+  it("accepts an identical population version retry without duplicating its rows", () => {
+    const store = repository();
+    store.migrate();
+    const input = { id: "population-v1", artifactId: "source-v1", sourceSha256: "a".repeat(64), sourceByteLength: 100, contractHash: "b".repeat(64), processorVersion: "normalizer-v2", outputHash: "c".repeat(64), monthly: monthly() };
+
+    store.ingestPopulationVersion(input);
+    expect(() => store.ingestPopulationVersion(input)).not.toThrow();
+    expect(store.populationDong("population-v1", "00123456")).toMatchObject({ count: 744 });
+  });
+
+  it("recomputes a comparison set from three ready population versions", () => {
+    const store = repository();
+    store.migrate();
+    store.ingestPopulationVersion(versionInput("version-current", "202607", "150.000000"));
+    store.ingestPopulationVersion(versionInput("version-year", "202507", "100.000000"));
+    store.ingestPopulationVersion(versionInput("version-month", "202606", "120.000000"));
+
+    store.createComparisonSet({ id: "comparison-202607", currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", changes: [], policyVersion: "population-comparison-v2" });
+
+    expect(store.comparison("comparison-202607", "00123456")).toMatchObject({ mode: "same_month_previous_year", comparisonPeriod: "202507", difference: "50.000000" });
   });
 });
