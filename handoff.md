@@ -23,7 +23,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 증거 결속 registry·snapshot 고정 및 overview 저장소 연결 완료. 다음은 실제 공식 registry 적재·Next route 연결과 남은 입력 경계 보완 |
+| 작업 단계 | 행정안전부 2026-07-01 공식 행정동 registry의 로컬 적재 경로 검증 완료. 다음은 이를 월 계약·공개 snapshot에 연결하기 전 과거 기준일 registry 확보 또는 Next route 연결 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
@@ -174,6 +174,12 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — 행정안전부 행정동 registry 로컬 적재
+
+- 행정안전부 2026-07-01 주소코드 ZIP의 `KIKcd_H.20260701`을 확인했다. 서울의 활성 행정동 10자리 코드에서 끝 `00`을 제외해 생활인구와 같은 8자리 코드 427개를 추출했다.
+- `data:import-mois-registry` CLI는 원본 SHA-256을 evidence로 저장하고 SQLite registry version `mois-20260701`에 적재한다. 원본은 Git 제외 `data/raw/`에 보관하고, 출처·해시·사용 파일은 `docs/references/mois-administrative-dong-20260701.md`에 기록했다.
+- 이 registry는 2026-07-01 이후 기준만 증명한다. 2025-07과 2026-06 월 계약에 소급 적용하거나 공개 snapshot을 교체하지 않았다.
 
 ### 2026-09-08 — registry 증거 결속 및 공개 snapshot 경계
 
