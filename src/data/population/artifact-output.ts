@@ -4,8 +4,10 @@ import path from "node:path";
 
 import type { MonthAggregation } from "./aggregate-month";
 import { parseFailureEnvelope, parseSuccessManifest, type PopulationFailureEnvelope, type PopulationSuccessManifest } from "./artifact-contract";
+import { parseNormalizationContract } from "./contract";
 import { fromMonthResult, parseMonthResult, toMonthResult, type MonthErrors, type MonthResult } from "./month-result";
 import { assertPopulationOutputPath } from "./output-path";
+import type { MonthInput, NormalizationContract } from "./types";
 
 export interface PopulationOutputOptions { workRoot?: string }
 
@@ -25,11 +27,28 @@ function hashJson(value: unknown): string {
   return hashBytes(Buffer.from(json(value), "utf8"));
 }
 
+function inputFromContract(contract: NormalizationContract): MonthInput {
+  return {
+    period: contract.period, asOfDate: contract.asOfDate, sourceId: contract.sourceId, schemaVersion: contract.schemaVersion,
+    method: contract.method, registry: contract.registry,
+  };
+}
+
 function metadataHash(metadata: Record<string, unknown>, field: string): string {
   const value = metadata[field];
   if (field === "sourceSha256" && typeof value === "string" && /^[a-f0-9]{64}$/i.test(value)) return value.toLowerCase();
   if (field === "contract") return hashJson(value ?? null);
   return hashJson(null);
+}
+
+function normalizationMetadata(metadata: Record<string, unknown>, monthly: MonthAggregation): { sourceSha256: string; contract: NormalizationContract; processingVersion: string } {
+  if (typeof metadata.sourceSha256 !== "string" || !/^[a-f0-9]{64}$/i.test(metadata.sourceSha256)) throw new Error("population sourceSha256 is required");
+  const contract = parseNormalizationContract(metadata.contract);
+  const sourceSha256 = metadata.sourceSha256.toLowerCase();
+  if (contract.expectedSha256 !== sourceSha256) throw new Error("population source hash does not match contract");
+  if (!monthly.input || monthly.period !== contract.period) throw new Error("population contract period does not match monthly output");
+  if (JSON.stringify(inputFromContract(contract)) !== JSON.stringify(monthly.input)) throw new Error("population contract does not match monthly input");
+  return { sourceSha256, contract, processingVersion: typeof metadata.processingVersion === "string" ? metadata.processingVersion : "population-normalization-v2" };
 }
 
 async function createStaging(outputDir: string): Promise<string> {
@@ -43,21 +62,21 @@ async function createStaging(outputDir: string): Promise<string> {
   throw new Error("population output already exists");
 }
 
-function runMetadata(metadata: Record<string, unknown>, period: string, status: "valid" | "invalid"): Record<string, unknown> {
+function runMetadata(metadata: Record<string, unknown>, period: string, status: "valid" | "invalid", normalized: ReturnType<typeof normalizationMetadata>): Record<string, unknown> {
   return {
     ...metadata, period, kind: "population-normalization", status,
-    processingVersion: typeof metadata.processingVersion === "string" ? metadata.processingVersion : "population-normalization-v2",
-    sourceSha256: metadataHash(metadata, "sourceSha256"),
+    contract: normalized.contract, processingVersion: normalized.processingVersion, sourceSha256: normalized.sourceSha256,
   };
 }
 
 export async function writeNormalizationOutput(outputDir: string, monthly: MonthAggregation, metadata: Record<string, unknown>, options: PopulationOutputOptions = {}): Promise<void> {
+  const normalizedMetadata = normalizationMetadata(metadata, monthly);
   const validatedOutputDir = options.workRoot ? await assertPopulationOutputPath(outputDir, options.workRoot) : outputDir;
   outputDir = validatedOutputDir;
   const parent = path.dirname(outputDir);
   const staging = await createStaging(outputDir);
   try {
-    const run = runMetadata(metadata, monthly.period, monthly.status === "invalid" ? "invalid" : "valid");
+    const run = runMetadata(metadata, monthly.period, monthly.status === "invalid" ? "invalid" : "valid", normalizedMetadata);
     const contractSha256 = hashJson(run.contract ?? null);
     if (monthly.status === "invalid") {
       const errors = toMonthResult(monthly);
@@ -127,7 +146,9 @@ async function readSuccess(outputDir: string): Promise<MonthResult> {
   const monthlyBytes = await readFile(path.join(outputDir, "monthly.json"));
   if (hashBytes(monthlyBytes) !== manifest.files["monthly.json"]) throw new Error("population monthly.json hash mismatch");
   const monthly = parseMonthResult(JSON.parse(monthlyBytes.toString("utf8")));
-  if (monthly.status !== "valid" || run.period !== monthly.input.period || hashJson(run.contract ?? null) !== manifest.contractSha256) throw new Error("population run input mismatch");
+  let contract: NormalizationContract;
+  try { contract = parseNormalizationContract(run.contract); } catch { throw new Error("population run contract mismatch"); }
+  if (monthly.status !== "valid" || run.period !== monthly.input.period || contract.expectedSha256 !== manifest.sourceSha256 || hashJson(contract) !== manifest.contractSha256 || JSON.stringify(inputFromContract(contract)) !== JSON.stringify(monthly.input)) throw new Error("population run input mismatch");
   return monthly;
 }
 
@@ -143,7 +164,9 @@ async function readFailure(outputDir: string): Promise<PopulationCandidateOutcom
   if (hashBytes(runBytes) !== failure.runSha256) throw new Error("population failure run.json hash mismatch");
   const errors = parseMonthResult(JSON.parse(errorsBytes.toString("utf8")));
   const run = JSON.parse(runBytes.toString("utf8")) as Record<string, unknown>;
-  if (errors.status !== "invalid" || run.kind !== "population-normalization" || run.status !== "invalid" || run.period !== errors.input.period || run.contractSha256 !== hashJson(run.contract ?? null)) throw new Error("population failure metadata mismatch");
+  let contract: NormalizationContract;
+  try { contract = parseNormalizationContract(run.contract); } catch { throw new Error("population failure contract mismatch"); }
+  if (errors.status !== "invalid" || run.kind !== "population-normalization" || run.status !== "invalid" || run.period !== errors.input.period || run.sourceSha256 !== contract.expectedSha256 || run.contractSha256 !== hashJson(contract) || JSON.stringify(inputFromContract(contract)) !== JSON.stringify(errors.input)) throw new Error("population failure metadata mismatch");
   return { kind: "invalid", period: errors.input.period, reasons: Object.keys(errors.errors.counts), diagnostics: errors.errors };
 }
 

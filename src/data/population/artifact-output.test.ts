@@ -19,7 +19,7 @@ const month = (): MonthAggregation => ({
   dongs: { "00123456": { dongCode: "00123456", count: 1, sumMicros: BigInt(123456789),
     mean: null, missingSlots: 671, status: "incomplete", firstDate: "20260201", lastDate: "20260201", missingRate: 671 / 672 } },
 });
-const metadata = () => ({ sourceSha256: "a".repeat(64), contract: { period: "202602", sourceId: "OA-23016" } });
+const metadata = () => ({ sourceSha256: "a".repeat(64), contract: { ...month().input!, expectedSha256: "a".repeat(64) } });
 afterEach(async () => {
   await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })));
 });
@@ -29,6 +29,12 @@ describe("population artifact publication", () => {
     const output = await target();
     await writeNormalizationOutput(output, month(), metadata());
     expect(await readMonthlyOutput(output)).toEqual(month());
+  });
+
+  it("requires a verified source hash and a normalization contract that matches the monthly input", async () => {
+    const output = await target();
+    await expect(writeNormalizationOutput(output, month(), {})).rejects.toThrow(/source|contract/);
+    await expect(writeNormalizationOutput(output, month(), { ...metadata(), sourceSha256: "b".repeat(64) })).rejects.toThrow(/contract/);
   });
 
   it("keeps invalid runs diagnostic-only without a completion marker", async () => {

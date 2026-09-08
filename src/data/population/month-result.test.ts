@@ -58,6 +58,32 @@ describe("population MonthResult contract", () => {
     for (const value of cases) expect(() => parseMonthResult(value)).toThrow();
   });
 
+  it("rejects observation counts that cannot fit between the reported dates", () => {
+    const result = toMonthResult(complete());
+    const value = {
+      ...result,
+      dongs: [{ ...result.dongs[0], observedCount: 25, missingCount: 647, missingRate: 647 / 672, sumMicros: "0", mean: null, status: "incomplete" as const, firstDate: "20260201", lastDate: "20260201" }],
+    };
+    expect(() => parseMonthResult(value)).toThrow(/observation/);
+  });
+
+  it("rejects diagnostics whose samples exceed their code count or whose count object is not a record", () => {
+    const result = toMonthResult(complete());
+    const invalid = {
+      ...result,
+      status: "invalid" as const,
+      dongs: [],
+      errors: { counts: { duplicate_slot: 1 }, samples: [{ code: "duplicate_slot", entry: "a.csv", line: 2 }, { code: "duplicate_slot", entry: "a.csv", line: 3 }] },
+    };
+    expect(() => parseMonthResult(invalid)).toThrow(/samples/);
+    expect(() => parseMonthResult({ ...result, errors: { counts: new Date(), samples: [] } })).toThrow(/counts/);
+    expect(() => parseMonthResult({ ...result, status: "invalid", dongs: [], errors: { counts: { source_error: Number.MAX_SAFE_INTEGER, duplicate_slot: 1 }, samples: [] } })).toThrow(/total/);
+  });
+
+  it("does not discard unexpected diagnostics while converting a valid aggregation", () => {
+    expect(() => toMonthResult({ ...complete(), diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } })).toThrow(/source errors/);
+  });
+
   it("requires expected registry codes to match the month result", () => {
     const value = toMonthResult(complete());
     value.input = { ...input, registry: { version: "registry-v1", evidenceIds: ["registry-doc"], dongs: [{ code: "00999999", validFrom: "2020-01-01", validToExclusive: null }] } };

@@ -124,7 +124,8 @@ function compatible(current: MonthAggregation, candidate: MonthAggregation, dong
   return candidate.dongs[dongCode];
 }
 
-export function compareMonths(current: MonthAggregation, previousYear: MonthAggregation, previousMonth: MonthAggregation, changes: AreaChange[] = []): DongComparison[] {
+export function compareMonths(current: MonthAggregation, previousYear: MonthAggregation, previousMonth: MonthAggregation, changes: unknown = []): DongComparison[] {
+  const validatedChanges = parseAreaChanges(changes);
   const periods = expectedPeriods(current.period);
   if (previousYear.period !== periods.previousYear || previousMonth.period !== periods.previousMonth) throw new Error("comparison candidate period mismatch");
   const methods = new Map([current, previousYear, previousMonth].map(month => [month, verifiedMethodVersion(month)]));
@@ -133,7 +134,7 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
     const currentDong = current.dongs[dongCode];
     const reasons: string[] = [];
     const base = (values: Omit<DongComparison, "comparisonMode" | "comparisonPeriod" | "fallbackReason" | "candidateFailures" | "codeMatchBasis" | "currentMean" | "previousMean" | "percentChange" | "percentUnavailableReason">, comparisonPeriod: string | null, candidateFailures: DongComparison["candidateFailures"]): DongComparison => ({
-      ...values, comparisonMode: values.mode, comparisonPeriod, fallbackReason: values.mode === "previous_month" ? "previous_year_unavailable" : values.reason,
+      ...values, comparisonMode: values.mode, comparisonPeriod, fallbackReason: values.mode === "previous_month" ? (candidateFailures.find(failure => failure.period === previousYear.period)?.reasons[0] ?? "previous_year_unavailable") : values.reason,
       candidateFailures, codeMatchBasis: values.mode === "unavailable" ? "unavailable" : "same_code", currentMean: values.currentValue,
       previousMean: values.candidateValue, percentChange: values.percent,
       percentUnavailableReason: values.percent === null && values.mode !== "unavailable" ? (reasons.includes("previous_value_zero") ? "previous_value_zero" : null) : null,
@@ -145,7 +146,7 @@ export function compareMonths(current: MonthAggregation, previousYear: MonthAggr
       return base({ dongCode, mode: "unavailable", currentValue: currentDong?.mean ?? null, candidateValue: null, difference: null, percent: null, reason: "current_incomplete", reasons: ["current_incomplete"] }, null, []);
     }
     const previousYearStart = `${previousYear.period.slice(0, 4)}-${previousYear.period.slice(4)}-01`;
-    const changed = changes.some((change) => change.code === dongCode && change.effectiveDate > previousYearStart && change.effectiveDate <= monthEnd(current.period));
+    const changed = validatedChanges.some((change) => change.code === dongCode && change.effectiveDate > previousYearStart && change.effectiveDate <= monthEnd(current.period));
     if (changed) return base({ dongCode, mode: "unavailable", currentValue: currentDong.mean, candidateValue: null, difference: null, percent: null, reason: "administrative_area_changed", reasons: ["administrative_area_changed"] }, null, [{ period: previousYear.period, reasons: ["administrative_area_changed"] }]);
     let candidate = compatible(current, previousYear, dongCode, reasons, methods);
     let mode: DongComparison["mode"] = "same_month_previous_year";

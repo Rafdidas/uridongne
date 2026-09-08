@@ -134,8 +134,12 @@ describe("compareMonths", () => {
     const [comparison] = compareMonths(month("202607", "150.000000"), month("202507", "100.000000", "incomplete"), month("202606", "120.000000"));
     expect(comparison).toMatchObject({ mode: "previous_month", difference: "30.000000", percent: "25.000000" });
     expect(comparison.reasons).toContain("candidate_incomplete");
-    expect(comparison).toMatchObject({ comparisonMode: "previous_month", comparisonPeriod: "202606", fallbackReason: "previous_year_unavailable", codeMatchBasis: "same_code" });
+    expect(comparison).toMatchObject({ comparisonMode: "previous_month", comparisonPeriod: "202606", fallbackReason: "candidate_incomplete", codeMatchBasis: "same_code" });
     expect(comparison.candidateFailures).toEqual([{ period: "202507", reasons: ["candidate_incomplete"] }]);
+  });
+
+  it("validates changes even when compareMonths is called directly", () => {
+    expect(() => compareMonths(month("202607", "150.000000"), month("202507", "100.000000"), month("202606", "120.000000"), [{ code: "bad" } as never])).toThrow(/area change/);
   });
 
   it("does not substitute another period when a code is absent", () => {

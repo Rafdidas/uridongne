@@ -44,6 +44,8 @@ const SAMPLE_FIELDS = ["code", "entry", "line"];
 function record(value: unknown, fields: string[], name: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`invalid ${name}`);
   const result = value as Record<string, unknown>;
+  const prototype = Object.getPrototypeOf(result);
+  if (prototype !== Object.prototype && prototype !== null) throw new Error(`invalid ${name}`);
   if (Object.keys(result).some(key => !fields.includes(key)) || fields.some(field => !Object.hasOwn(result, field))) {
     throw new Error(`invalid ${name}`);
   }
@@ -69,11 +71,14 @@ function parseErrors(value: unknown): MonthErrors {
   const input = record(value, ERROR_FIELDS, "errors");
   const countsValue = input.counts;
   if (!countsValue || typeof countsValue !== "object" || Array.isArray(countsValue)) throw new Error("invalid error counts");
+  const countsPrototype = Object.getPrototypeOf(countsValue);
+  if (countsPrototype !== Object.prototype && countsPrototype !== null) throw new Error("invalid error counts");
   const counts: Record<string, number> = {};
   for (const [code, count] of Object.entries(countsValue)) {
     if (!/^[a-z][a-z0-9_]*$/.test(code)) throw new Error("invalid error code");
     counts[code] = integer(count, `errors.counts.${code}`, 1);
   }
+  if (!Number.isSafeInteger(Object.values(counts).reduce((sum, count) => sum + count, 0))) throw new Error("invalid error count total");
   if (!Array.isArray(input.samples) || input.samples.length > 20) throw new Error("invalid error samples");
   const samples = input.samples.map(sample => {
     const item = record(sample, SAMPLE_FIELDS, "error sample");
@@ -82,6 +87,9 @@ function parseErrors(value: unknown): MonthErrors {
     if (item.line !== null) integer(item.line, "error sample line", 1);
     return { code: item.code, entry: item.entry, line: item.line as number | null };
   });
+  for (const [code, count] of Object.entries(counts)) {
+    if (samples.filter(sample => sample.code === code).length > count) throw new Error("invalid error samples");
+  }
   return { counts, samples };
 }
 
@@ -97,6 +105,11 @@ function parseDong(value: unknown, period: string): DongMonth {
   const firstDate = monthDate(item.firstDate, period, true);
   const lastDate = monthDate(item.lastDate, period, true);
   if ((firstDate === null) !== (lastDate === null) || (firstDate !== null && lastDate !== null && firstDate > lastDate)) throw new Error("invalid dong dates");
+  if (firstDate !== null && lastDate !== null) {
+    const first = Date.UTC(Number(firstDate.slice(0, 4)), Number(firstDate.slice(4, 6)) - 1, Number(firstDate.slice(6)));
+    const last = Date.UTC(Number(lastDate.slice(0, 4)), Number(lastDate.slice(4, 6)) - 1, Number(lastDate.slice(6)));
+    if (observedCount > ((last - first) / 86_400_000 + 1) * 24) throw new Error("observation count exceeds date range");
+  }
   if (typeof item.sumMicros !== "string" || !/^\d+$/.test(item.sumMicros)) throw new Error("invalid sumMicros");
   const status = item.status;
   if (status !== "complete" && status !== "incomplete") throw new Error("invalid dong status");
@@ -132,10 +145,10 @@ export function parseMonthResult(value: unknown): MonthResult {
 
 export function toMonthResult(month: MonthAggregation): MonthResult {
   if (!month.input || !month.coverageStatus) throw new Error("month aggregation is missing normalized input");
-  const errors: MonthErrors = month.diagnostics ?? { counts: {}, samples: [] };
+  const errors = parseErrors(month.diagnostics ?? { counts: {}, samples: [] });
   if (month.status === "invalid") {
     const counts = Object.keys(errors.counts).length ? errors.counts : (() => { throw new Error("invalid aggregation is missing diagnostics"); })();
-    return { input: parseMonthInput(month.input), status: "invalid", coverageStatus: month.coverageStatus, dongs: [], errors: { counts, samples: errors.samples.slice(0, 20) } };
+    return parseMonthResult({ input: parseMonthInput(month.input), status: "invalid", coverageStatus: month.coverageStatus, dongs: [], errors: { counts, samples: errors.samples } });
   }
   const expectedCount = month.expectedSlotsPerDong;
   const dongs = Object.values(month.dongs).sort((a, b) => a.dongCode.localeCompare(b.dongCode)).map(dong => ({
@@ -143,7 +156,7 @@ export function toMonthResult(month: MonthAggregation): MonthResult {
     missingRate: dong.missingRate ?? dong.missingSlots / expectedCount, firstDate: dong.firstDate ? dong.firstDate : null,
     lastDate: dong.lastDate ? dong.lastDate : null, sumMicros: dong.sumMicros.toString(), mean: dong.mean, status: dong.status,
   }));
-  const result: MonthResult = { input: parseMonthInput(month.input), status: "valid", coverageStatus: month.coverageStatus, dongs, errors: { counts: {}, samples: [] } };
+  const result: MonthResult = { input: parseMonthInput(month.input), status: "valid", coverageStatus: month.coverageStatus, dongs, errors };
   return parseMonthResult(result);
 }
 
