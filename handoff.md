@@ -29,7 +29,7 @@
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
 | 앱 빌드·테스트 | 2026-09-08 overview HTTP 계약 구현 후 테스트 165개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
-| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 현재 로컬 보완 브랜치 codex/population-validation-fixes |
+| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 보완 브랜치 codex/population-validation-fixes는 7edb738까지 원격 푸시됨 |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
 | 로컬 도구 확인 | Node.js 24.12.0 / pnpm 10.30.3. 2026-09-03 읽기 전용 확인, 설치·업데이트 없음 |
@@ -174,6 +174,11 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — D1 로컬 구현 원격 푸시
+
+- 사용자의 명시 요청에 따라 `codex/population-validation-fixes`의 `1b4dc05..7edb738` 9개 커밋을 origin에 푸시했다. 여기에는 계약 보완, 실원본 인수 기록, D1 로컬 마이그레이션·snapshot·version·comparison·overview 계약 구현이 포함된다.
+- Cloudflare 리소스 생성·D1 원격 적용·배포는 수행하지 않았다.
 
 ### 2026-09-08 — population overview HTTP 계약
 
