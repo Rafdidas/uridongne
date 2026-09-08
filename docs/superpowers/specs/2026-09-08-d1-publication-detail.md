@@ -81,3 +81,5 @@ SQL 외래키·CHECK와 런타임 검증을 함께 사용한다. 비교 후보�
 이어 `0004_snapshot_members.sql`과 구성·조회 기능을 추가했다. current·previous_year·previous_month version과 comparison set은 하나의 snapshot에 역할별로 고정되고, comparison set의 실제 입력이 members와 일치하지 않으면 validated 전환을 거부한다. 공개 채널에서 이 네 참조를 한 조회로 반환한다. 실패 후보 참조와 공개 DTO/API는 아직 구현하지 않았다.
 
 `toPublicPopulation`과 `publishedPopulationOverview`를 추가했다. 공개 DTO는 method unverified 또는 current incomplete일 때 내부 산출물의 현재값·이전값·증감 값을 모두 null로 변환한다. overview는 고정 channel snapshot의 current version, 동 행, comparison 행과 저장된 method 계약을 다시 묶는다. HTTP API route, registry 기반 검색/404, 실패 후보 참조는 아직 구현하지 않았다.
+
+`populationOverviewResponse`가 HTTP 응답 계약을 구현했다. 잘못된 코드는 400, 공개 snapshot 없음은 503, 공개 registry 미등록은 404, 등록된 동의 지표 부재는 200/unavailable이다. registry 데이터와 실제 Next route 연결은 아직 구현하지 않았다.
