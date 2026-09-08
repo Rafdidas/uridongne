@@ -53,7 +53,7 @@ describe("population artifact publication", () => {
   it("reads an explicitly failed candidate without treating missing completion as failure", async () => {
     const output = await target();
     await publish(output, { ...month(), status: "invalid", dongs: {}, errors: ["duplicate slot"], diagnostics: { counts: { duplicate_slot: 1 }, samples: [] } });
-    await expect(readCandidateOutcome(output)).resolves.toMatchObject({ kind: "invalid", period: "202602" });
+    await expect(readCandidateOutcome(output)).resolves.toMatchObject({ kind: "invalid", period: "202602", input: month().input, sourceSha256: "a".repeat(64) });
   });
 
   it("rejects a failure directory with mismatched diagnostics", async () => {

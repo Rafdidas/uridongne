@@ -73,7 +73,7 @@ describe("aggregatePopulation", () => {
   });
 
   it("treats 0 and 00 as the same hour slot", async () => {
-    const first = row("20260201", 0, "00123456", "10");
+    const first = { ...row("20260201", 0, "00123456", "10"), values: { ...row("20260201", 0, "00123456", "10").values, 시간: "0" } };
     const second = { ...first, line: 3, values: { ...first.values, 시간: "00", 생활인구합계: "11" } };
     const result = await aggregatePopulation("202602", rows([first, second]));
     expect(result.errors[0]).toContain("duplicate slot");

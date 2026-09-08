@@ -6,6 +6,13 @@ export class PopulationSourceError extends Error {
   }
 }
 
+export class PopulationConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PopulationConfigurationError";
+  }
+}
+
 export interface PopulationDiagnostics {
   counts: Record<string, number>;
   samples: { code: string; entry: string; line: number | null }[];

@@ -113,6 +113,23 @@ describe("population CLI publication boundary", () => {
     await expect(readFile(path.join(output, "comparison.json"))).rejects.toThrow();
   });
 
+  it("returns configuration status for mismatched candidate periods", async () => {
+    const directory = await workspace();
+    const currentDir = path.join(directory, "current"), previousYearDir = path.join(directory, "previous-year"), previousMonthDir = path.join(directory, "previous-month");
+    const complete = (period: string): MonthAggregation => ({
+      period, status: "complete", expectedSlotsPerDong: daysInMonth(period) * 24, observedSlots: daysInMonth(period) * 24,
+      errors: [], coverageStatus: "observed_only", methodStatus: "verified",
+      input: { ...contractInput(period), method: { status: "verified", version: "fixture", evidenceIds: ["fixture-method-document"] } },
+      dongs: { "00123456": { dongCode: "00123456", count: daysInMonth(period) * 24, sumMicros: BigInt(daysInMonth(period) * 24 * 100000000), mean: "100.000000", missingSlots: 0, status: "complete", firstDate: `${period}01`, lastDate: `${period}${String(daysInMonth(period)).padStart(2, "0")}`, missingRate: 0 } },
+    });
+    await writeNormalizationOutput(currentDir, complete("202607"), outputMetadata("202607", true), { workRoot: directory });
+    await writeNormalizationOutput(previousYearDir, complete("202506"), outputMetadata("202506", true), { workRoot: directory });
+    await writeNormalizationOutput(previousMonthDir, complete("202606"), outputMetadata("202606", true), { workRoot: directory });
+    const changes = path.join(directory, "changes.json");
+    await writeFile(changes, "[]");
+    expect(await run("compare-population.ts", ["--current-dir", currentDir, "--previous-year-dir", previousYearDir, "--previous-month-dir", previousMonthDir, "--changes", changes, "--output-dir", path.join(directory, "comparison"), "--work-root", directory])).toBe(1);
+  });
+
   it.each([false, true])("returns the comparison result status for verified=%s", async (verified) => {
     const directory = await workspace();
     const dirs = ["current", "year", "month"].map(name => path.join(directory, name));

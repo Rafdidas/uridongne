@@ -1,5 +1,6 @@
 import type { DongAggregation, MonthAggregation } from "./aggregate-month";
 import { calendarDate, parseMonthInput, POPULATION_SCHEMA_VERSION } from "./contract";
+import { PopulationConfigurationError } from "./errors";
 
 export interface AreaChange {
   code: string;
@@ -43,10 +44,10 @@ export function parseAreaChanges(value: unknown): AreaChange[] {
 }
 
 function expectedPeriods(period: string): { previousYear: string; previousMonth: string } {
-  if (!/^\d{6}$/.test(period)) throw new Error("invalid current period");
+  if (!/^\d{6}$/.test(period)) throw new PopulationConfigurationError("invalid current period");
   const year = Number(period.slice(0, 4));
   const month = Number(period.slice(4));
-  if (month < 1 || month > 12) throw new Error("invalid current period");
+  if (month < 1 || month > 12) throw new PopulationConfigurationError("invalid current period");
   const previousMonthDate = new Date(Date.UTC(year, month - 2, 1));
   return {
     previousYear: `${year - 1}${String(month).padStart(2, "0")}`,
@@ -127,7 +128,7 @@ function compatible(current: MonthAggregation, candidate: MonthAggregation, dong
 export function compareMonths(current: MonthAggregation, previousYear: MonthAggregation, previousMonth: MonthAggregation, changes: unknown = []): DongComparison[] {
   const validatedChanges = parseAreaChanges(changes);
   const periods = expectedPeriods(current.period);
-  if (previousYear.period !== periods.previousYear || previousMonth.period !== periods.previousMonth) throw new Error("comparison candidate period mismatch");
+  if (previousYear.period !== periods.previousYear || previousMonth.period !== periods.previousMonth) throw new PopulationConfigurationError("comparison candidate period mismatch");
   const methods = new Map([current, previousYear, previousMonth].map(month => [month, verifiedMethodVersion(month)]));
   const codes = new Set([...Object.keys(current.dongs), ...Object.keys(previousYear.dongs), ...Object.keys(previousMonth.dongs)]);
   return [...codes].sort().map((dongCode) => {

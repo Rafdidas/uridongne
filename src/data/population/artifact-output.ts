@@ -13,7 +13,7 @@ export interface PopulationOutputOptions { workRoot: string }
 
 export type PopulationCandidateOutcome =
   | { kind: "success"; monthly: MonthAggregation }
-  | { kind: "invalid"; period: string; reasons: string[]; diagnostics: MonthErrors };
+  | { kind: "invalid"; period: string; reasons: string[]; diagnostics: MonthErrors; input: MonthInput; sourceSha256: string; contract: NormalizationContract; processingVersion: string };
 
 function json(value: unknown): string {
   return `${JSON.stringify(value, (_key, item) => typeof item === "bigint" ? item.toString() : item, 2)}\n`;
@@ -169,8 +169,8 @@ async function readFailure(outputDir: string): Promise<PopulationCandidateOutcom
   const run = JSON.parse(runBytes.toString("utf8")) as Record<string, unknown>;
   let contract: NormalizationContract;
   try { contract = parseNormalizationContract(run.contract); } catch { throw new Error("population failure contract mismatch"); }
-  if (errors.status !== "invalid" || run.kind !== "population-normalization" || run.status !== "invalid" || run.period !== errors.input.period || run.sourceSha256 !== contract.expectedSha256 || run.contractSha256 !== hashJson(contract) || JSON.stringify(inputFromContract(contract)) !== JSON.stringify(errors.input)) throw new Error("population failure metadata mismatch");
-  return { kind: "invalid", period: errors.input.period, reasons: Object.keys(errors.errors.counts), diagnostics: errors.errors };
+  if (errors.status !== "invalid" || run.kind !== "population-normalization" || run.status !== "invalid" || run.period !== errors.input.period || run.sourceSha256 !== contract.expectedSha256 || run.contractSha256 !== hashJson(contract) || typeof run.processingVersion !== "string" || JSON.stringify(inputFromContract(contract)) !== JSON.stringify(errors.input)) throw new Error("population failure metadata mismatch");
+  return { kind: "invalid", period: errors.input.period, reasons: Object.keys(errors.errors.counts), diagnostics: errors.errors, input: errors.input, sourceSha256: contract.expectedSha256, contract, processingVersion: run.processingVersion };
 }
 
 async function exists(filePath: string): Promise<boolean> {

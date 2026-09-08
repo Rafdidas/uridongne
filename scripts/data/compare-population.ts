@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { compareMonths, parseAreaChanges } from "../../src/data/population/compare-months";
+import { PopulationConfigurationError } from "../../src/data/population/errors";
 import { readCandidateOutcome, writeComparisonOutput } from "../../src/data/population/artifact-output";
 import type { MonthAggregation } from "../../src/data/population/aggregate-month";
 import { parseNamedArgs } from "./cli-args";
@@ -41,7 +42,7 @@ async function main(): Promise<void> {
     if (comparison.length === 0 || comparison.every(result => result.mode === "unavailable")) process.exitCode = 2;
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
-    process.exitCode = 2;
+    process.exitCode = error instanceof PopulationConfigurationError ? 1 : 2;
   }
 }
 
