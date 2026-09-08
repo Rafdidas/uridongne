@@ -29,7 +29,7 @@
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
 | 앱 빌드·테스트 | 2026-09-08 공식 registry 적재 후 테스트 167개, lint·typecheck 통과. SQLite에서 0001~0006 마이그레이션 적용(테이블 13개)을 확인. Next build는 1차 보완 이전 상태에서 통과 |
-| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 사용자의 이번 요청으로 보완 브랜치에 registry 관련 로컬 커밋과 이 인계 갱신을 푸시한다 |
+| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. 사용자의 요청으로 population 보완·registry 관련 커밋을 main에 fast-forward 병합해 푸시했고, `codex/population-validation-fixes` 로컬 브랜치는 정리했다 |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
 | 로컬 도구 확인 | Node.js 24.12.0 / pnpm 10.30.3. 2026-09-03 읽기 전용 확인, 설치·업데이트 없음 |
