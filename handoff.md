@@ -23,7 +23,7 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | D1 구현 전 입력 계약 1차 보완 완료. 다음은 남은 파일 읽기·회귀 보강 후 로컬 저장·포인터·조회 repository 구현 |
+| 작업 단계 | 로컬 D1 공개 포인터 기반 구현 완료. 다음은 population version·comparison set 적재와 고정 snapshot 조회 repository 구현 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
@@ -174,6 +174,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — 로컬 D1 공개 포인터 기반 구현
+
+- `migrations/0001_population_snapshots.sql`에 snapshots, public_channels, publication_events의 첫 마이그레이션을 추가했다. public channel의 generation 조건과 이벤트의 operation_id·채널 generation 유일성을 DB 제약으로 둔다.
+- `SnapshotRepository`는 building 스냅샷 생성, validated 전환, 공개 채널 초기화, 공개 적격 스냅샷의 조건부 포인터 교체를 구현했다. stale writer는 포인터를 바꾸지 않고 실패하며 operation ID 재시도는 동일 요청만 같은 결과를 돌려준다.
+- 실제 메모리 SQLite에서 외래키를 켜고 최초 공개·경합·공개 부적격·멱등 재시도를 테스트했다. 마이그레이션 SQL도 별도 SQLite 실행으로 세 테이블 생성을 확인했다. 전체 테스트 23개 파일·154개, lint·typecheck·diff 검사를 통과했다.
+- `better-sqlite3`와 타입 패키지를 개발 의존성으로 추가했다. 이는 D1과 같은 SQLite 제약을 로컬 테스트에 적용하기 위한 것이며 Cloudflare DB·바인딩·배포는 생성하지 않았다. population version·comparison set 적재, 고정 snapshot 조회, 엄격한 limit+1 읽기 및 역순 회귀 보강은 다음 구현 단위다. push하지 않는다.
 
 ### 2026-09-08 — D1 구현 전 입력 계약 1차 보완
 

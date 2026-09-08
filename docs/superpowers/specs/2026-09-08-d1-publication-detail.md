@@ -71,3 +71,7 @@ SQL 외래키·CHECK와 런타임 검증을 함께 사용한다. 비교 후보�
 5. README의 로컬 DB 준비·검증 명령을 실제 구현에 맞춰 갱신한다. Cloudflare 계정 연결과 실제 공개는 사용자 요청 시 별도 진행한다.
 
 실행 SQL과 상세 테스트 파일은 구현 단계에서 추가한다. 이 설계 검토에서 테스트·빌드·로컬 D1 실행은 수행하지 않았다.
+
+## 구현 진행 기록
+
+2026-09-08 구현용 모델에서 `migrations/0001_population_snapshots.sql`과 `SnapshotRepository`의 첫 단위를 추가했다. 로컬 SQLite로 snapshots, public_channels, publication_events를 실제 실행한다. validated와 publication_eligible을 모두 확인한 뒤 expected_generation 조건으로 포인터를 교체하며, 같은 operation_id는 같은 채널·세대·스냅샷·사유의 재시도만 허용한다. 스키마 SQL은 메모리 SQLite 실행으로 확인했고 repository는 최초 공개, stale writer, 공개 부적격, 멱등 재시도를 회귀 검증했다. population version·comparison set 적재와 조회 repository는 아직 구현하지 않았다.
