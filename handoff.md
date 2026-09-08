@@ -176,7 +176,7 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 202507·202606·202607 raw ZIP과 source-contract를 확인하고 `data/work/population-YYYYMM-task5-v2-a/b`에서 각각 두 번 정규화했다. 모두 reader 재검증을 통과했으며 동 수 426/427/427, 관측 슬롯 316,944/307,440/317,688, 누락 0, 오류 counts `{}`를 유지했다.
 - 각 월의 `monthly.json`과 `manifest.json`은 a/b 실행에서 바이트 동일했다. 비교 CLI도 두 세트에서 동일한 comparison 본문·manifest를 생성했고, 전체 unavailable 종료 상태(실제 CLI 코드 2)는 method unverified 계약에 따른 예상 결과다. 사유 집계는 method_unverified 425, administrative_area_unverified 2, current_incomplete 1이다.
 - 새 실행 메타데이터의 startedAt/finishedAt/elapsedMs/rssAtEndBytes를 확인했고 `git check-ignore`로 raw/work 산출물 제외를 확인했다. 공식 method·registry 근거 미확인은 유지한다.
-- `pnpm test` 22개 파일·140개, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 통과시키고 로컬 커밋만 남긴다. push하지 않는다.
+- `pnpm test` 22개 파일·140개, `pnpm lint`, `pnpm typecheck`, `pnpm build`, `git diff --check`를 통과시켰다. 커밋 `8b7531f`까지 로컬에 남겼고, 2026-09-08 사용자의 명시 요청에 따라 `codex/population-validation-fixes` 원격 브랜치에 push했다.
 - 공개 전 검증 보완 Task 1~5를 완료했다. 다음은 설계 모델로 D1 저장·공개 포인터의 세부 설계를 검토한 뒤 구현 모델로 전환하는 단계다.
 
 ### 2026-09-07 — 파일 경계·출력 경로·실행 측정 정정
