@@ -23,13 +23,13 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | population overview HTTP 계약 구현 완료. 다음은 registry 적재·실제 route 연결과 남은 입력 경계 보완 |
+| 작업 단계 | 증거 결속 registry·snapshot 고정 및 overview 저장소 연결 완료. 다음은 실제 공식 registry 적재·Next route 연결과 남은 입력 경계 보완 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-08 overview HTTP 계약 구현 후 테스트 165개, lint·typecheck 통과. Next build는 1차 보완 이전 상태에서 통과 |
-| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 보완 브랜치 codex/population-validation-fixes는 7edb738까지 원격 푸시됨 |
+| 앱 빌드·테스트 | 2026-09-08 registry·snapshot 연결 후 테스트 166개, lint·typecheck 통과. SQLite에서 0001~0006 마이그레이션 적용(테이블 13개)을 확인. Next build는 1차 보완 이전 상태에서 통과 |
+| Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. main은 716e6d7까지 푸시됨. 보완 브랜치 codex/population-validation-fixes는 8a8b32c까지 원격 푸시됨; registry 연결은 로컬 커밋이며 아직 push하지 않음 |
 | Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
 | 로컬 도구 확인 | Node.js 24.12.0 / pnpm 10.30.3. 2026-09-03 읽기 전용 확인, 설치·업데이트 없음 |
@@ -174,6 +174,13 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 긴 실행 로그는 필요한 근거만 요약한다. 새 기록을 추가할 때 상단 현재 상태도 함께 고친다.
 
 ## 결정·작업 이력
+
+### 2026-09-08 — registry 증거 결속 및 공개 snapshot 경계
+
+- `0005_dong_registry.sql`로 근거 문서·version·유효기간을 가진 동 registry를, `0006_snapshot_registry_members.sql`로 snapshot별 고정 registry 참조를 추가했다. registry 없이 population snapshot을 조립할 수 없게 했다.
+- repository는 HTTPS 출처와 SHA-256을 가진 registry만 적재하고, 공개 channel의 고정 registry 코드로 `hasPublishedDong`을 판단한다. 따라서 overview HTTP 계약은 공개된 동은 200, 같은 snapshot registry에 없는 코드는 404로 구분한다.
+- 현재 registry 값은 저장소 테스트 fixture뿐이며, 실제 공식 행정동 목록이나 이름을 적재·공개한 것은 아니다. 다음 단계에서 출처·해시를 확인한 공식 목록을 별도 version으로 적재해야 한다.
+- 검증: `pnpm test` 25개 파일·166개 테스트, `pnpm lint`, `pnpm typecheck`, `git diff --check` 통과. 메모리 SQLite에 `0001`~`0006`을 순서대로 적용해 사용자 테이블 13개를 확인했다. Cloudflare·외부 DB·배포·push는 수행하지 않았다.
 
 ### 2026-09-08 — D1 로컬 구현 원격 푸시
 

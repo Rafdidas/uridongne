@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { PublicationConflictError, SnapshotRepository } from "./snapshot-repository";
 import type { MonthAggregation } from "../population/aggregate-month";
+import { populationOverviewResponse } from "./population-overview-endpoint";
 
 const databases: Database.Database[] = [];
 function repository() {
@@ -132,11 +133,24 @@ describe("SnapshotRepository", () => {
     store.ingestPopulationVersion(versionInput("version-year", "202507", "100.000000"));
     store.ingestPopulationVersion(versionInput("version-month", "202606", "120.000000"));
     store.createComparisonSet({ id: "comparison-202607", currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", changes: [], policyVersion: "population-comparison-v2" });
+    store.ingestDongRegistry({ id: "registry-202607", evidence: { id: "registry-evidence", sourceUrl: "https://example.test/registry", sha256: "d".repeat(64) }, entries: [{ code: "00123456", name: "테스트동", districtName: "테스트구", validFrom: "2026-01-01", validToExclusive: null }] });
 
-    store.assemblePopulationSnapshot({ id: "snapshot-202607", contentHash: "a".repeat(64), validationReportHash: "b".repeat(64), publicationEligible: true, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607" });
+    store.assemblePopulationSnapshot({ id: "snapshot-202607", contentHash: "a".repeat(64), validationReportHash: "b".repeat(64), publicationEligible: true, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607", registryVersionId: "registry-202607" });
     store.publish({ channel: "production", expectedGeneration: 0, snapshotId: "snapshot-202607", operationId: "operation-202607", reason: "validated import" });
 
     expect(store.publishedPopulation("production")).toEqual({ snapshotId: "snapshot-202607", generation: 1, currentVersionId: "version-current", previousYearVersionId: "version-year", previousMonthVersionId: "version-month", comparisonSetId: "comparison-202607" });
     expect(store.publishedPopulationOverview("production", "00123456")).toMatchObject({ status: "available", snapshotId: "snapshot-202607", currentMean: "150.000000", comparisonPeriod: "202507", difference: "50.000000" });
+    expect(populationOverviewResponse(store, "production", "00123456").status).toBe(200);
+    expect(populationOverviewResponse(store, "production", "00999999").status).toBe(404);
+  });
+
+  it("stores an evidence-bound registry version without inventing dong names", () => {
+    const store = repository();
+    store.migrate();
+
+    store.ingestDongRegistry({ id: "registry-202607", evidence: { id: "official-registry-document", sourceUrl: "https://example.test/registry", sha256: "a".repeat(64) }, entries: [{ code: "00123456", name: "테스트동", districtName: "테스트구", validFrom: "2026-01-01", validToExclusive: null }] });
+
+    expect(store.registryDong("registry-202607", "00123456")).toEqual({ code: "00123456", name: "테스트동", districtName: "테스트구", validFrom: "2026-01-01", validToExclusive: null });
+    expect(store.registryDong("registry-202607", "00999999")).toBeUndefined();
   });
 });

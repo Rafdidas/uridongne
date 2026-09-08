@@ -70,6 +70,7 @@ export interface PopulationSnapshotInput extends CreateSnapshot {
   previousYearVersionId: string;
   previousMonthVersionId: string;
   comparisonSetId: string;
+  registryVersionId: string;
 }
 
 export interface PublishedPopulationSnapshot {
@@ -79,6 +80,12 @@ export interface PublishedPopulationSnapshot {
   previousYearVersionId: string;
   previousMonthVersionId: string;
   comparisonSetId: string;
+}
+
+export interface DongRegistryInput {
+  id: string;
+  evidence: { id: string; sourceUrl: string; sha256: string };
+  entries: Array<{ code: string; name: string; districtName: string; validFrom: string; validToExclusive: string | null }>;
 }
 
 const schema = `
@@ -171,6 +178,36 @@ const snapshotMemberSchema = `
   );
 `;
 
+const registrySchema = `
+  CREATE TABLE IF NOT EXISTS evidence_documents (
+    id TEXT PRIMARY KEY,
+    source_url TEXT NOT NULL,
+    sha256 TEXT NOT NULL CHECK (length(sha256) = 64)
+  );
+  CREATE TABLE IF NOT EXISTS dong_registry_versions (
+    id TEXT PRIMARY KEY,
+    evidence_id TEXT NOT NULL REFERENCES evidence_documents(id),
+    state TEXT NOT NULL CHECK (state IN ('ready', 'rejected'))
+  );
+  CREATE TABLE IF NOT EXISTS dong_registry_entries (
+    registry_version_id TEXT NOT NULL REFERENCES dong_registry_versions(id),
+    code TEXT NOT NULL CHECK (length(code) = 8),
+    name TEXT NOT NULL,
+    district_name TEXT NOT NULL,
+    valid_from TEXT NOT NULL,
+    valid_to_exclusive TEXT,
+    PRIMARY KEY (registry_version_id, code, valid_from),
+    CHECK (valid_to_exclusive IS NULL OR valid_to_exclusive > valid_from)
+  );
+`;
+
+const snapshotRegistrySchema = `
+  CREATE TABLE IF NOT EXISTS snapshot_registry_members (
+    snapshot_id TEXT PRIMARY KEY REFERENCES snapshots(id),
+    registry_version_id TEXT NOT NULL REFERENCES dong_registry_versions(id)
+  );
+`;
+
 function row(value: unknown): Record<string, unknown> | undefined {
   return value as Record<string, unknown> | undefined;
 }
@@ -187,6 +224,8 @@ export class SnapshotRepository {
     this.database.exec(populationSchema);
     this.database.exec(comparisonSchema);
     this.database.exec(snapshotMemberSchema);
+    this.database.exec(registrySchema);
+    this.database.exec(snapshotRegistrySchema);
   }
 
   ingestPopulationVersion(input: PopulationVersionInput): void {
@@ -259,6 +298,29 @@ export class SnapshotRepository {
     return typeof value?.result_json === "string" ? JSON.parse(value.result_json) as Record<string, unknown> : undefined;
   }
 
+  ingestDongRegistry(input: DongRegistryInput): void {
+    validIdentifier(input.id, "registry version id");
+    validIdentifier(input.evidence.id, "registry evidence id");
+    if (!/^https:\/\/.+/.test(input.evidence.sourceUrl) || !/^[a-f0-9]{64}$/i.test(input.evidence.sha256)) throw new Error("registry evidence is invalid");
+    if (input.entries.length === 0) throw new Error("registry entries are required");
+    const operation = this.database.transaction(() => {
+      this.database.prepare("INSERT INTO evidence_documents (id, source_url, sha256) VALUES (?, ?, ?)").run(input.evidence.id, input.evidence.sourceUrl, input.evidence.sha256.toLowerCase());
+      this.database.prepare("INSERT INTO dong_registry_versions (id, evidence_id, state) VALUES (?, ?, 'ready')").run(input.id, input.evidence.id);
+      const insert = this.database.prepare("INSERT INTO dong_registry_entries (registry_version_id, code, name, district_name, valid_from, valid_to_exclusive) VALUES (?, ?, ?, ?, ?, ?)");
+      for (const entry of input.entries) {
+        if (!/^\d{8}$/.test(entry.code) || !entry.name.trim() || !entry.districtName.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(entry.validFrom) || entry.validToExclusive !== null && !/^\d{4}-\d{2}-\d{2}$/.test(entry.validToExclusive)) throw new Error("registry entry is invalid");
+        insert.run(input.id, entry.code, entry.name, entry.districtName, entry.validFrom, entry.validToExclusive);
+      }
+    });
+    operation();
+  }
+
+  registryDong(registryVersionId: string, dongCode: string): Record<string, unknown> | undefined {
+    const value = row(this.database.prepare("SELECT code, name, district_name, valid_from, valid_to_exclusive FROM dong_registry_entries WHERE registry_version_id = ? AND code = ? ORDER BY valid_from DESC LIMIT 1").get(registryVersionId, dongCode));
+    if (!value) return undefined;
+    return { code: value.code, name: value.name, districtName: value.district_name, validFrom: value.valid_from, validToExclusive: value.valid_to_exclusive ?? null };
+  }
+
   assemblePopulationSnapshot(input: PopulationSnapshotInput): void {
     if (!/^[a-f0-9]{64}$/i.test(input.validationReportHash)) throw new Error("validation report hash is invalid");
     const operation = this.database.transaction(() => {
@@ -274,6 +336,9 @@ export class SnapshotRepository {
       insert.run(input.id, "previous_year", input.previousYearVersionId, null);
       insert.run(input.id, "previous_month", input.previousMonthVersionId, null);
       insert.run(input.id, "comparison", null, input.comparisonSetId);
+      const registry = row(this.database.prepare("SELECT state FROM dong_registry_versions WHERE id = ?").get(input.registryVersionId));
+      if (!registry || registry.state !== "ready") throw new Error("snapshot requires a ready dong registry");
+      this.database.prepare("INSERT INTO snapshot_registry_members (snapshot_id, registry_version_id) VALUES (?, ?)").run(input.id, input.registryVersionId);
       const validated = this.database.prepare("UPDATE snapshots SET state = 'validated', validation_report_hash = ? WHERE id = ? AND state = 'building'").run(input.validationReportHash.toLowerCase(), input.id);
       if (validated.changes !== 1) throw new PublicationConflictError("snapshot cannot be validated");
     });
@@ -321,6 +386,24 @@ export class SnapshotRepository {
       },
     };
     return toPublicPopulation(publicInput);
+  }
+
+  hasPublishedSnapshot(channelName: string): boolean {
+    return this.publishedPopulation(channelName) !== undefined;
+  }
+
+  hasPublishedDong(channelName: string, dongCode: string): boolean {
+    const value = row(this.database.prepare(`
+      SELECT 1 AS found FROM public_channels c
+      JOIN snapshot_registry_members s ON s.snapshot_id = c.snapshot_id
+      JOIN dong_registry_entries e ON e.registry_version_id = s.registry_version_id
+      WHERE c.name = ? AND e.code = ? LIMIT 1
+    `).get(channelName, dongCode));
+    return value?.found === 1;
+  }
+
+  overview(channelName: string, dongCode: string): PublicPopulation | undefined {
+    return this.publishedPopulationOverview(channelName, dongCode);
   }
 
   private readyMonth(versionId: string): MonthAggregation {
