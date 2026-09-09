@@ -588,3 +588,8 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 화면은 생활인구 수치를 0으로 만들지 않으며 ‘생활인구 데이터를 준비하고 있습니다’만 표시한다. 검색 결과 없음과 공개 목록 준비 전 상태도 별도로 표시한다.
 - 화면 단위 테스트 3개와 lint·typecheck는 통과했다. `pnpm build`는 next.config의 OpenNext 개발 초기화가 Windows workerd를 시작하면서 access violation으로 실패했다. 애플리케이션 코드 오류가 아니라 기존 로컬 Workers 런타임 제한이며 Linux/Cloudflare Builds에서 재검증이 필요하다.
 - 아직 GitHub push·Worker 재배포·브라우저 공개 검증은 하지 않았다.
+
+### 2026-09-09 — GitHub main push
+
+- `feat: add published dong search` 커밋 `e046ef6`을 origin/main에 push했다.
+- push 직전 전체 33개 파일·180개 테스트, lint, typecheck가 통과했다. Windows `pnpm build`는 기존 workerd access violation으로 실패하므로 Cloudflare Builds의 Linux 빌드 결과를 확인해야 한다.
