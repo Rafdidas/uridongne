@@ -12,5 +12,7 @@ describe("Home", () => {
     expect(markup).toContain("숫자로 보는 우리 동네의 변화");
     expect(markup).toContain("동네 검색");
     expect(markup).toContain('action="/search"');
+    expect(markup).toContain("max-w-[48rem]");
+    expect(markup).toContain("max-w-[36rem]");
   });
 });

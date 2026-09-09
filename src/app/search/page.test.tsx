@@ -16,5 +16,6 @@ describe("SearchPage", () => {
     expect(markup).toContain("역삼1동");
     expect(markup).toContain("강남구");
     expect(markup).toContain('href="/dongs/11680640"');
+    expect(markup).toContain("max-w-[48rem]");
   });
 });

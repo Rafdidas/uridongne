@@ -14,5 +14,6 @@ describe("DongPage", () => {
     const markup = renderToStaticMarkup(await DongPage({ params: Promise.resolve({ dongCode: "11680640" }) }));
     expect(markup).toContain("역삼1동");
     expect(markup).toContain("생활인구 데이터를 준비하고 있습니다");
+    expect(markup).toContain("max-w-[48rem]");
   });
 });

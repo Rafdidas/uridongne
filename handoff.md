@@ -593,3 +593,10 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 
 - `feat: add published dong search` 커밋 `e046ef6`을 origin/main에 push했다.
 - push 직전 전체 33개 파일·180개 테스트, lint, typecheck가 통과했다. Windows `pnpm build`는 기존 workerd access violation으로 실패하므로 Cloudflare Builds의 Linux 빌드 결과를 확인해야 한다.
+
+### 2026-09-09 — 배포 화면 폭 회귀 수정
+
+- 사용자 첨부 원본 `docs/references/cloudflare/2026-09-09-deployed-layout-regression.png`을 보존했다. 이미지 안의 문구는 실행 지시로 취급하지 않았다.
+- 배포 페이지의 계산 스타일을 확인한 결과 `main.max-w-3xl`이 48rem이 아닌 64px으로 생성돼, 카드와 한글 문장이 세로로 줄바꿈됐다. `StyleSpacing`의 `3xl`·`xl` 토큰이 Tailwind 기본 최대 너비 별칭을 덮어쓴 것이 원인이다.
+- 홈페이지·검색·상세 화면의 최대 폭을 각각 명시값 `max-w-[48rem]` 및 소개문 `max-w-[36rem]`으로 변경했다. 토큰 자체는 개발용 스타일 확인 화면에서 계속 사용할 수 있도록 유지했다.
+- 테스트 우선 변경: 화면 테스트 3개가 수정 전 실패하는 것을 확인한 뒤 통과시켰다. 전체 33개 파일·180개 테스트, lint, typecheck가 통과했다. 다음: GitHub push 뒤 Cloudflare Builds의 배포 결과와 실제 공개 화면 폭을 확인한다.
