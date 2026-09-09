@@ -10,6 +10,15 @@
 
 정규화 CLI는 로컬 검증용입니다. 기준일·출처·해시·스키마·방법 근거 메타데이터와 행정동 목록 유효기간을 검사합니다. 실제 공식 근거 확보와 산출물 계약의 나머지 검증은 D1 적재·서비스 공개 전 보완이 필요합니다.
 
+## 배포
+
+- 공개 주소: https://uridongne.rafdi.workers.dev/
+- 2026-09-09 브라우저에서 초기 준비 화면 표시를 확인했습니다. 검색·실제 데이터 조회는 아직 공개되지 않았습니다.
+- Cloudflare Workers 빌드 명령: `pnpm run build:cf`
+- 배포 명령: `pnpm exec opennextjs-cloudflare deploy`
+- D1 이름: `uridongne-db`. 원격 migration: `pnpm d1:migrate:remote`.
+- 공식 행정동 SQL 생성: `pnpm data:build-mois-registry-publication -- --input data/raw/jscode20260701.zip --output data/work/mois-20260701-publication.sql`. 생성 SQL은 검토 후 `pnpm exec wrangler d1 execute uridongne-db --remote --file <path> --yes`로 적재합니다.
+
 ## 기술 구성
 
 - Next.js 16 · React 19 · TypeScript

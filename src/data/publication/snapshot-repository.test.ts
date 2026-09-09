@@ -153,4 +153,17 @@ describe("SnapshotRepository", () => {
     expect(store.registryDong("registry-202607", "00123456")).toEqual({ code: "00123456", name: "테스트동", districtName: "테스트구", validFrom: "2026-01-01", validToExclusive: null });
     expect(store.registryDong("registry-202607", "00999999")).toBeUndefined();
   });
+
+  it("publishes a registry-only snapshot without inventing population data", () => {
+    const store = repository();
+    store.migrate();
+    store.ingestDongRegistry({ id: "registry-202607", evidence: { id: "official-registry-document", sourceUrl: "https://example.test/registry", sha256: "a".repeat(64) }, entries: [{ code: "00123456", name: "테스트동", districtName: "테스트구", validFrom: "2026-07-01", validToExclusive: null }] });
+
+    store.assembleRegistrySnapshot({ id: "registry-snapshot-202607", contentHash: "b".repeat(64), validationReportHash: "c".repeat(64), publicationEligible: true, registryVersionId: "registry-202607" });
+    store.publish({ channel: "production", expectedGeneration: 0, snapshotId: "registry-snapshot-202607", operationId: "registry-operation-202607", reason: "verified registry import" });
+
+    expect(store.channel("production")).toEqual({ snapshotId: "registry-snapshot-202607", generation: 1 });
+    expect(store.hasPublishedDong("production", "00123456")).toBe(true);
+    expect(store.publishedPopulation("production")).toBeUndefined();
+  });
 });

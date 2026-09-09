@@ -73,6 +73,11 @@ export interface PopulationSnapshotInput extends CreateSnapshot {
   registryVersionId: string;
 }
 
+export interface RegistrySnapshotInput extends CreateSnapshot {
+  validationReportHash: string;
+  registryVersionId: string;
+}
+
 export interface PublishedPopulationSnapshot {
   snapshotId: string;
   generation: number;
@@ -336,6 +341,19 @@ export class SnapshotRepository {
       insert.run(input.id, "previous_year", input.previousYearVersionId, null);
       insert.run(input.id, "previous_month", input.previousMonthVersionId, null);
       insert.run(input.id, "comparison", null, input.comparisonSetId);
+      const registry = row(this.database.prepare("SELECT state FROM dong_registry_versions WHERE id = ?").get(input.registryVersionId));
+      if (!registry || registry.state !== "ready") throw new Error("snapshot requires a ready dong registry");
+      this.database.prepare("INSERT INTO snapshot_registry_members (snapshot_id, registry_version_id) VALUES (?, ?)").run(input.id, input.registryVersionId);
+      const validated = this.database.prepare("UPDATE snapshots SET state = 'validated', validation_report_hash = ? WHERE id = ? AND state = 'building'").run(input.validationReportHash.toLowerCase(), input.id);
+      if (validated.changes !== 1) throw new PublicationConflictError("snapshot cannot be validated");
+    });
+    operation();
+  }
+
+  assembleRegistrySnapshot(input: RegistrySnapshotInput): void {
+    if (!/^[a-f0-9]{64}$/i.test(input.validationReportHash)) throw new Error("validation report hash is invalid");
+    const operation = this.database.transaction(() => {
+      this.createSnapshot(input);
       const registry = row(this.database.prepare("SELECT state FROM dong_registry_versions WHERE id = ?").get(input.registryVersionId));
       if (!registry || registry.state !== "ready") throw new Error("snapshot requires a ready dong registry");
       this.database.prepare("INSERT INTO snapshot_registry_members (snapshot_id, registry_version_id) VALUES (?, ?)").run(input.id, input.registryVersionId);

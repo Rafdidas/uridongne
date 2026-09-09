@@ -7,5 +7,12 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "uridongne-db",
+      "database_id": "7f818d71-8d9e-454f-b18c-6a89223feddb"
+    }
+  ]
 }

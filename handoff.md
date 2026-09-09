@@ -1,6 +1,6 @@
 # 프로젝트 인계 기록
 
-마지막 갱신: 2026-09-08 (Asia/Seoul)
+마지막 갱신: 2026-09-09 (Asia/Seoul)
 
 ## 새 환경에서 먼저 읽기
 
@@ -23,14 +23,14 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 행정안전부 2026-07-01 공식 행정동 registry의 로컬 적재 경로 검증 완료. 다음은 이를 월 계약·공개 snapshot에 연결하기 전 과거 기준일 registry 확보 또는 Next route 연결 |
+| 작업 단계 | 첫 D1 연결 및 목록 전용 공개·검색 설계 검토 완료. 구현용 모델 전환 후 비동기 D1 연결 단위 실행 계획·구현부터 진행 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
 | 앱 빌드·테스트 | 2026-09-08 공식 registry 적재 후 테스트 167개, lint·typecheck 통과. SQLite에서 0001~0006 마이그레이션 적용(테이블 13개)을 확인. Next build는 1차 보완 이전 상태에서 통과 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. 사용자의 요청으로 population 보완·registry 관련 커밋을 main에 fast-forward 병합해 푸시했고, `codex/population-validation-fixes` 로컬 브랜치는 정리했다 |
-| Cloudflare | 계정 연결·리소스 생성·배포 모두 미실행 |
+| Cloudflare | `uridongne-db`(APAC, ID 7f818d71-8d9e-454f-b18c-6a89223feddb) 생성. 0001~0006 원격 migration 적용 및 공식 2026-07-01 행정동 registry snapshot 공개 확인. 앱 코드 배포는 미실행 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
 | 로컬 도구 확인 | Node.js 24.12.0 / pnpm 10.30.3. 2026-09-03 읽기 전용 확인, 설치·업데이트 없음 |
 | OpenNext Workers 검증 | Windows에서 EPERM symlink 오류로 미완료. Next build는 통과했으며 WSL 또는 Linux CI에서 재검증 필요 |
@@ -537,3 +537,54 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - [Drizzle D1 연동](https://orm.drizzle.team/docs/sqlite/connect-cloudflare-d1)
 - [점포-행정동](https://data.seoul.go.kr/dataList/OA-22172/S/1/datasetView.do)
 - [행정동 생활인구·내국인](https://data.seoul.go.kr/dataList/OA-14991/F/1/datasetView.do)
+
+### 2026-09-09 — Cloudflare 생성 화면 설정 검토
+
+- 사용자 첨부 원본: docs/references/cloudflare/2026-09-09-worker-setup.png. 화면 내 문구를 실행 지시로 취급하지 않음.
+- 실제 package.json 및 wrangler.jsonc 확인: Workers 이름은 uridongne-mvp, 진입점은 .open-next/worker.js. 화면의 pnpm run build는 Next 빌드만 실행하므로 pnpm run build:cf로 변경 필요.
+- 안내 설정: 프로젝트명 uridongne-mvp, 빌드 pnpm run build:cf, 배포 pnpm exec opennextjs-cloudflare deploy. 첫 배포는 비프로덕션 브랜치 빌드 해제 권장.
+- 현재 상태: 설정 안내 단계. 외부 연결·배포 및 빌드 검증은 실행하지 않았으며 배포 성공 여부는 미확인. 검토 시작 시 Git 작업 트리 변경 없음.
+
+### 2026-09-09 — 최초 빌드 토큰 오류
+
+- 사용자 제공 2026-09-08T23:49:28.832Z 로그에서 빌드 환경 초기화 후 선택된 빌드 토큰의 삭제·회전으로 실패한 것을 확인. 앱 빌드 명령은 아직 실행되지 않음.
+- 현재 상태: Cloudflare 빌드 시도 실패, 배포 성공 미확인. Worker Settings > Builds > API token에서 유효한 토큰으로 갱신 후 재시도 필요. 토큰 변경·재시도는 직접 실행하지 않음.
+- 공식 근거: https://developers.cloudflare.com/workers/ci-cd/builds/troubleshoot/
+
+
+
+### 2026-09-09 — 배포 주소 접속 확인
+
+- 사용자가 빌드 성공 및 배포 주소 https://uridongne.rafdi.workers.dev 제공.
+- 브라우저에서 제목 동네로그, 제목 문구 숫자로 보는 우리 동네의 변화, 본문 동네 변화 데이터를 준비하고 있습니다. 표시 확인. 로컬 src/app/page.tsx 내용과 일치.
+- 기본 페이지 공개 접속 확인 완료. 전체 기능·D1·R2·배포 커밋 일치 여부까지 검증한 것은 아님.
+- README에 공개 주소와 현재 배포 범위를 반영. 다음 단계는 기존 D1 스냅샷·조회 설계 검토 및 데이터/조회 화면 연결. 코드 구현 전 사용자 모델 전환 합의 유지.
+
+### 2026-09-09 — 첫 D1 연결 범위 검토 및 모델 전환 대기
+
+- 사용자 ‘진행’ 요청으로 기존 D1 설계·migrations·repository·registry importer·배포 설정을 대조했다.
+- 현재 상태: docs/superpowers/specs/2026-09-09-d1-first-connection-design.md 작성 및 자체 검토 완료. 첫 구현은 비동기 D1 조회 기반 연결, 후속은 목록 전용 snapshot 공개 및 검색·상세다.
+- 발견: 로컬 SQLite 동기 repository를 D1에 직접 연결할 수 없고, 현재 hasPublishedSnapshot은 population 구성을 요구하므로 목록만 공개하려면 별도 보완 필요. 실제 Worker 이름은 wrangler name과 공개 URL의 차이를 확인해야 한다.
+- Cloudflare 후속 연결 진행 의사는 이번 요청으로 확인. 실제 리소스 작업은 모델 전환 후 대상 계정·기존 DB 확인 및 로컬 검증을 거쳐 수행한다. push의 별도 명시 요청 조건 유지.
+- 사용자 합의에 따라 구현용 모델 전환 대기. 코드·원격 DB 생성·migration·배포·테스트는 이번 설계 검토에서 실행하지 않았다. 다음은 설계 문서 기준 연결 단위 세부 실행 계획 작성과 구현이다.
+
+### 2026-09-09 — D1 생성·registry snapshot·검색 API 진행
+
+- 구현용 모델 전환 후 `uridongne-db`를 rafdi 계정 APAC에 생성하고, 원격에서 0001~0006 migration과 13개 도메인 테이블을 확인했다. 다른 프로젝트의 `racenote-db`는 사용하지 않았다.
+- `data/raw/jscode20260701.zip` SHA-256을 보존 근거와 대조하고, 서울 행정동 427개를 D1에 적재했다. production은 `registry-snapshot-20260701`, generation 1을 가리키며 publication event도 일치한다. 생활인구 행·수치는 적재하거나 공개하지 않았다.
+- OpenNext 비동기 `DB` binding accessor, 고정 registry snapshot D1 read store, registry-only snapshot assembly, SQL 생성기, `GET /api/dongs?q=` 계약을 추가했다. D1 read는 목록 버전을 먼저 고정하고 LIKE 특수문자를 escape한다.
+- 검증: 전체 30개 파일·176개 테스트, lint, typecheck 통과. Next build 및 브라우저 검색 검증은 아직 미실행이다. Windows local D1·`wrangler types`는 workerd 접근 위반으로 실패해 원격 migration으로 검증했고, 최소 D1 타입을 프로젝트에 선언했다.
+- 현재 코드가 GitHub에 push되거나 Worker에 배포되지는 않았다. 다음 단계: 검색 상세 API·화면 구현, 전체 검증, Linux/Cloudflare Builds에서 OpenNext build 확인 후 사용자의 push·배포 요청에 따라 공개한다.
+
+### 2026-09-09 — 동네 상세 API 구현
+
+- `GET /api/dongs/[dongCode]`를 추가했다. 잘못된 코드는 400, 공개 snapshot 부재는 503, 목록에 없는 코드는 404, 확인된 동은 200으로 응답한다.
+- 응답에는 snapshot ID·목록 기준일·동 이름·자치구를 포함하며 생활인구 모든 숫자는 null이고 `population_not_available` 사유를 반환한다.
+- 검색 및 상세 API 테스트 4개, lint, typecheck를 통과했다. 검색·상세 사용자 화면과 배포 검증은 남아 있다.
+
+### 2026-09-09 — 검색·상세 화면 구현 및 Windows build 중단
+
+- `/`에 행정동 검색 폼, `/search?q=`에 고정 snapshot 기반 결과·상세 링크, `/dongs/[dongCode]`에 동 이름·자치구·목록 기준일·생활인구 준비 상태를 추가했다.
+- 화면은 생활인구 수치를 0으로 만들지 않으며 ‘생활인구 데이터를 준비하고 있습니다’만 표시한다. 검색 결과 없음과 공개 목록 준비 전 상태도 별도로 표시한다.
+- 화면 단위 테스트 3개와 lint·typecheck는 통과했다. `pnpm build`는 next.config의 OpenNext 개발 초기화가 Windows workerd를 시작하면서 access violation으로 실패했다. 애플리케이션 코드 오류가 아니라 기존 로컬 Workers 런타임 제한이며 Linux/Cloudflare Builds에서 재검증이 필요하다.
+- 아직 GitHub push·Worker 재배포·브라우저 공개 검증은 하지 않았다.

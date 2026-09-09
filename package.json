@@ -13,11 +13,13 @@
     "test": "vitest run",
     "build:cf": "opennextjs-cloudflare build",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
+    "d1:migrate:remote": "wrangler d1 migrations apply uridongne-db --remote",
     "data:inspect": "tsx scripts/data/inspect-artifact.ts",
     "data:compare": "tsx scripts/data/compare-profiles.ts",
     "data:normalize-population": "tsx scripts/data/normalize-population.ts",
     "data:compare-population": "tsx scripts/data/compare-population.ts",
-    "data:import-mois-registry": "tsx scripts/data/import-mois-dong-registry.ts"
+    "data:import-mois-registry": "tsx scripts/data/import-mois-dong-registry.ts",
+    "data:build-mois-registry-publication": "tsx scripts/data/build-mois-registry-publication.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.8",
