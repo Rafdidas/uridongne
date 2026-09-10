@@ -14,7 +14,7 @@
 
 - 공개 주소: https://uridongne.rafdi.workers.dev/
 - 2026-09-09 서울 행정동 검색·상세 조회와 화면 폭 수정 배포를 확인했습니다.
-- 2026-09-10 승인된 단일 월 공개 정책에 따라 7월 내국인 생활인구 평균 조회를 연결했습니다. 427개 동의 원본 해시·공식 목록·744개 시간대를 확인했습니다. 전월 증감은 공개하지 않습니다. 배포 상태는 handoff.md의 최신 기록을 참고하세요.
+- 2026-09-10 승인된 단일 월 공개 정책에 따라 7월 내국인 생활인구 평균을 배포하고 공개 화면에서 확인했습니다. 427개 동의 원본 해시·공식 목록·744개 시간대를 확인했습니다. 전월 증감은 공개하지 않습니다.
 - Cloudflare Workers 빌드 명령: `pnpm run build:cf`
 - 배포 명령: `pnpm exec opennextjs-cloudflare deploy`
 - D1 이름: `uridongne-db`. 원격 migration: `pnpm d1:migrate:remote`.

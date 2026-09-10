@@ -23,14 +23,14 @@
 
 | 항목 | 상태 |
 | --- | --- |
-| 작업 단계 | 검색·상세 공개 완료. 생활인구 전월 비교의 D1 조회·API·화면 로컬 연결 완료. 실제 숫자 발행은 방법·기간별 registry 근거 부족으로 미완료 |
+| 작업 단계 | 검색·상세 및 7월 내국인 생활인구 단일 월 평균 공개 완료. 전월 비교는 미공개 |
 | 프로젝트명 | 동네로그는 가제. 최종 브랜드·도메인은 미정 |
 | 애플리케이션 생성 | C:\\dev\\uridongne 루트에 생성 |
 | 의존성 설치·버전 고정 | pnpm-lock.yaml 생성, Next 16.3.4·React 19.2.8·Tailwind 4.3.3·TanStack Query 5.102.8 고정 |
 | 현재 작성된 파일 | `src/data/population/` 엄격 관측·ZIP 행 리더·월 집계·동별 비교, 정규화/비교 CLI, 계약·실행 보고서 |
-| 앱 빌드·테스트 | 2026-09-10 테스트 189개, lint, TypeScript 검사 통과. 이번 변경의 production build·브라우저 시각 검증은 미실행 |
+| 앱 빌드·테스트 | 2026-09-10 테스트 190개·lint·TypeScript 검사 통과. Cloudflare 새 배포와 공개 상세 화면에서 7월 평균·출처·비교 숨김 확인 |
 | Git 저장소·GitHub | origin: https://github.com/Rafdidas/uridongne.git. 사용자의 요청으로 population 보완·registry 관련 커밋을 main에 fast-forward 병합해 푸시했고, `codex/population-validation-fixes` 로컬 브랜치는 정리했다 |
-| Cloudflare | `uridongne-db`(APAC, ID 7f818d71-8d9e-454f-b18c-6a89223feddb). 0001~0006 원격 migration·검색·상세·화면 폭 수정 배포 완료. 이번 생활인구 변경은 로컬만 수정, 원격 적재·push·재배포 미실행 |
+| Cloudflare | `uridongne-db`(APAC, ID 7f818d71-8d9e-454f-b18c-6a89223feddb). 0001~0007 적용. production=population-snapshot-202607-month-only-v1, generation 2. 생활인구 단일 월 배포 완료 |
 | 실제 데이터 | 관측된 동은 202607 427개·202507 426개·202606 427개 모두 슬롯 완결. 공식 전체 목록은 미검증. 비교 428개 코드는 방법 미확인 425·전년 코드 부재 2·현재 코드 부재 1로 모두 unavailable |
 | 로컬 도구 확인 | Node.js 24.12.0 / pnpm 10.30.3. 2026-09-03 읽기 전용 확인, 설치·업데이트 없음 |
 | OpenNext Workers 검증 | Windows에서 EPERM symlink 오류로 미완료. Next build는 통과했으며 WSL 또는 Linux CI에서 재검증 필요 |
@@ -628,3 +628,9 @@ Windows에서는 표준 Next.js 개발을 하고, 배포용 OpenNext 빌드는 L
 - 원본 재집계 및 427개 동 조회 검증 완료. 317688개 슬롯·누락 0. 테스트 190개, lint·TypeScript 검사 통과.
 - D1 7403 오류 후 재조회가 복구됐다. 자동 승인 사용량 한도에 의한 중단은 사용자 재진행 요청 이후 재개했다. 0007 migration과 새 스냅샷 적재 완료. 기존 snapshot을 보존하는 generation 1→2 공개 SQL 실행.
 - 코드 배포 및 브라우저 검증 진행 중. 근거: docs/data/2026-09-10-july-release.md.
+
+### 2026-09-10 — 7월 평균 공개 배포 확인
+
+- 커밋 78cae9c을 origin/main에 push. Cloudflare 배포 26f5bd17-2823-41c9-9be7-65059a7de5be(2026-09-10T02:20:03Z) 이후 공개 상세 화면을 확인했다.
+- 역삼1동에 2026년 7월 103,569.75명, 내국인 시간대 평균 정의·출처·전월 증감 보류 안내가 표시됐다. 1280×720 브라우저에서 카드 레이아웃 정상. 모바일 별도 검증은 미실행.
+- 원격 D1: 427개 동, 317688개 슬롯, 누락 0, 공개 채널 generation 2 확인. 단일 월 공개 목표 완료; 비교 근거 확인은 후속 범위다.
