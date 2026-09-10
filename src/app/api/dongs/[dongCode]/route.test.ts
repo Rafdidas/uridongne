@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+vi.mock("@/data/publication/d1-population", () => ({ readPopulation: vi.fn(async () => null) }));
 
 vi.mock("@/data/publication/d1-context", () => ({ getD1Database: vi.fn(async () => ({ prepare: vi.fn(), batch: vi.fn() })) }));
 vi.mock("@/data/publication/d1-read-store", () => ({
@@ -7,8 +8,15 @@ vi.mock("@/data/publication/d1-read-store", () => ({
 }));
 
 import { GET } from "./route";
+import { readPopulation } from "@/data/publication/d1-population";
 
 describe("GET /api/dongs/[dongCode]", () => {
+  it("passes the captured snapshot to population reads", async () => {
+    vi.mocked(readPopulation).mockResolvedValueOnce({ status:"available",snapshotId:"registry-snapshot-20260701",currentPeriod:"202607",currentMean:"150.000000",comparisonMode:"previous_month",comparisonPeriod:"202606",previousMean:"100.000000",difference:"50.000000",percentChange:"50.000000",reasonCodes:[],candidateFailures:[] });
+    const response=await GET(new Request("https://example.test"), {params:Promise.resolve({dongCode:"11680640"})});
+    expect(await response.json()).toMatchObject({population:{currentMean:"150.000000",comparisonMode:"previous_month"}});
+    expect(readPopulation).toHaveBeenLastCalledWith(expect.anything(),"registry-snapshot-20260701","11680640");
+  });
   it("rejects malformed codes", async () => {
     expect((await GET(new Request("https://example.test"), { params: Promise.resolve({ dongCode: "bad" }) })).status).toBe(400);
   });

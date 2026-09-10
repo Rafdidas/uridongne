@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
+vi.mock("@/data/publication/d1-population", () => ({ readPopulation: vi.fn(async () => null) }));
 
 vi.mock("@/data/publication/d1-context", () => ({ getD1Database: vi.fn(async () => ({ prepare: vi.fn(), batch: vi.fn() })) }));
 vi.mock("@/data/publication/d1-read-store", () => ({

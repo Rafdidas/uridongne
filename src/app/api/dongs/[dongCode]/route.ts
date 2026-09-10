@@ -1,5 +1,6 @@
 import { getD1Database } from "@/data/publication/d1-context";
 import { readPublicRegistrySnapshot, readPublishedDong } from "@/data/publication/d1-read-store";
+import { readPopulation } from "@/data/publication/d1-population";
 
 export async function GET(_request: Request, context: { params: Promise<{ dongCode: string }> }): Promise<Response> {
   const { dongCode } = await context.params;
@@ -15,6 +16,6 @@ export async function GET(_request: Request, context: { params: Promise<{ dongCo
     snapshotId: snapshot.snapshotId,
     effectiveDate: snapshot.effectiveDate,
     dong,
-    population: { status: "unavailable", currentMean: null, comparisonMode: "unavailable", comparisonPeriod: null, previousMean: null, difference: null, percentChange: null, reasonCodes: ["population_not_available"] },
+    population: await readPopulation(database, snapshot.snapshotId, dongCode) ?? { status: "unavailable", currentMean: null, comparisonMode: "unavailable", comparisonPeriod: null, previousMean: null, difference: null, percentChange: null, reasonCodes: ["population_not_available"] },
   });
 }
